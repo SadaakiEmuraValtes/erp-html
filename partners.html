@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>取引先マスター | VALTES ERP Demo</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <script src="js/i18n.js"></script>
+  <script src="data/master.js"></script>
+  <script src="js/core.js"></script>
+  <script src="js/layout.js"></script>
+
+  <div id="page" class="hidden">
+    <h1 class="page-title" id="page-title" data-i18n-en="🏢 Business Partners">🏢 取引先マスター</h1>
+
+    <form class="panel" id="search-form" onsubmit="event.preventDefault();search(1)">
+      <div class="panel-head" data-i18n-en="🔍 Search Conditions">🔍 検索条件</div>
+      <div class="panel-body">
+        <div class="search-grid">
+          <div class="form-group"><label for="s-keyword" data-i18n-en="Code / name (partial)">コード・名称（部分一致）</label><input type="text" id="s-keyword" name="keyword"></div>
+          <div class="form-group"><label for="s-kind" data-i18n-en="Type">区分</label><select id="s-kind" name="kind"></select></div>
+          <div class="form-group"><label for="s-status" data-i18n-en="Status">取引状況</label><select id="s-status" name="status"></select></div>
+          <div class="form-group"><label for="s-pref" data-i18n-en="Prefecture">都道府県</label><select id="s-pref" name="pref"></select></div>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" id="btn-clear" onclick="document.getElementById('search-form').reset();search(1)" data-i18n-en="Clear">クリア</button>
+          <button type="submit" class="btn btn-primary" id="btn-search" data-i18n-en="🔍 Search">🔍 検索</button>
+        </div>
+      </div>
+    </form>
+
+    <div class="toolbar" id="result-toolbar">
+      <span class="result-count" id="result-count"></span><span class="result-range" id="result-range"></span>
+      <div class="right"><div id="pager-top"></div></div>
+    </div>
+    <div id="results"></div>
+    <div class="pager-bottom" id="pager-bottom"></div>
+  </div>
+
+  <script>
+    const FIELDS = ["keyword", "kind", "status", "pref"];
+    let rows = [], page = 1;
+
+    document.addEventListener("DOMContentLoaded", () => {
+      if (!buildPage({ title: t("取引先マスター", "Business Partners"), menu: "partners", crumbs: [["マスター", "Master Data"], ["取引先マスター", "Business Partners"]] })) return;
+      const all = t("すべて", "All");
+      document.getElementById("s-kind").innerHTML = optionsHtml(["customer", "supplier"].map(k => ({ value: k, label: ERP.label.partnerKind(k) })), "", all);
+      document.getElementById("s-status").innerHTML = optionsHtml(["active", "suspended"].map(k => ({ value: k, label: ERP.label.partnerStatus(k) })), "", all);
+      document.getElementById("s-pref").innerHTML = optionsHtml([...new Set(PARTNERS.map(p => p.pref))].sort().map(p => ({ value: p, label: p })), "", all);
+      search(fillSearchForm(FIELDS));
+    });
+
+    function search(p) { rows = ERP.searchPartners(readSearchForm(FIELDS)); page = p; render(); }
+    function goPage(p) { page = p; render(); }
+
+    function render() {
+      page = renderPaged(rows, page, 20, slice => {
+        document.getElementById("results").innerHTML = tableHtml({ id: "partner-table", rowPrefix: "partner", rows: slice, rowKey: p => p.code,
+          emptyText: t("条件に一致する取引先はありません。", "No partners found."), rowAttrs: p => `data-kind="${p.kind}" data-status="${p.status}"`, columns: [
+          { key: "code", label: ["コード", "Code"], value: p => p.code, cls: "nowrap mono" },
+          { key: "kind", label: ["区分", "Type"], value: p => p.kind, html: p => badge("partnerKind", p.kind) },
+          { key: "name", label: ["名称", "Name"], value: p => p.name, html: p => esc(ERP.partnerName(p.code)) },
+          { key: "pref", label: ["都道府県", "Prefecture"], value: p => p.pref, cls: "nowrap" },
+          { key: "phone", label: ["電話番号", "Phone"], value: p => p.phone, cls: "nowrap" },
+          { key: "contact", label: ["担当者", "Contact"], value: p => p.contact, cls: "nowrap" },
+          { key: "payTerm", label: ["支払条件", "Payment terms"], value: p => p.payTerm, html: p => esc(ERP.label.payTerm(p.payTerm)) },
+          { key: "creditLimit", label: ["与信限度額", "Credit limit"], value: p => p.creditLimit, html: p => p.kind === "customer" ? yen(p.creditLimit) : "-", cls: "num" },
+          { key: "creditBalance", label: ["与信残", "Credit remaining"], value: p => p.kind === "customer" ? ERP.creditBalance(p.code) : "", html: p => p.kind === "customer" ? yen(ERP.creditBalance(p.code)) : "-", cls: "num" },
+          { key: "status", label: ["取引状況", "Status"], value: p => p.status, html: p => badge("partnerStatus", p.status) },
+        ] });
+      }, "goPage");
+      writeSearchUrl(readSearchForm(FIELDS), page);
+    }
+  </script>
+</body>
+</html>

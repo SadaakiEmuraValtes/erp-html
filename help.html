@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>ヘルプ・テストデータ | VALTES ERP Demo</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <script src="js/i18n.js"></script>
+  <script src="data/master.js"></script>
+  <script src="js/core.js"></script>
+  <script src="js/layout.js"></script>
+
+  <div id="page" class="hidden">
+    <h1 class="page-title" id="page-title" data-i18n-en="❔ Help & Test Data">❔ ヘルプ・テストデータ</h1>
+    <p class="page-desc" data-i18n-en="Test accounts, permissions, test items, selector conventions and data-driven test files.">テストアカウント・権限・テスト用データ・セレクタ規約・データドリブンテスト用ファイルの一覧です。</p>
+
+    <div class="panel" id="sec-accounts"><div class="panel-head" data-i18n-en="🧪 Test Accounts">🧪 テストアカウント</div><div id="accounts"></div></div>
+    <div class="panel" id="sec-perms"><div class="panel-head" data-i18n-en="🔑 Permissions by Role">🔑 ロール別の権限</div><div id="perms"></div></div>
+    <div class="panel" id="sec-items"><div class="panel-head" data-i18n-en="📌 Test Items (P-00001 – P-00012)">📌 テスト用品目（P-00001〜P-00012）</div><div id="items"></div></div>
+    <div class="panel" id="sec-partners"><div class="panel-head" data-i18n-en="🏢 Test Partners">🏢 テスト用取引先</div><div id="partners"></div></div>
+
+    <div class="panel" id="sec-xpath"><div class="panel-head" data-i18n-en="🎯 Selector / XPath Conventions">🎯 セレクタ・XPath の規約</div><div class="panel-body" id="xpath"></div></div>
+    <div class="panel" id="sec-ddt"><div class="panel-head" data-i18n-en="📄 Data-Driven Test Files">📄 データドリブンテスト用ファイル</div><div class="panel-body" id="ddt"></div></div>
+    <div class="panel" id="sec-rules"><div class="panel-head" data-i18n-en="📏 Business Rules">📏 業務ルール（入力チェック）</div><div class="panel-body"><ol id="rules" style="margin-left:20px"></ol></div></div>
+
+    <div class="panel" id="sec-reset"><div class="panel-head" style="color:var(--danger)" data-i18n-en="🗑 Reset Demo Data">🗑 デモデータの初期化</div>
+      <div class="panel-body">
+        <p style="margin-bottom:10px" data-i18n-en="Restores products, orders, shipments and stock movements to the initial state (localStorage keys starting with erp_). You will be logged out.">商品・受注・発注・配送・入出庫履歴を初期状態に戻します（localStorage の erp_ で始まるキーを削除）。ログアウトされます。</p>
+        <button class="btn btn-danger" id="btn-reset-data" onclick="resetData()" data-i18n-en="Reset Data">データを初期化する</button>
+      </div></div>
+  </div>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      if (!buildPage({ title: t("ヘルプ・テストデータ", "Help & Test Data"), menu: "help", crumbs: [["ヘルプ・テストデータ", "Help & Test Data"]] })) return;
+
+      document.getElementById("accounts").innerHTML = tableHtml({ id: "help-account-table", rowPrefix: "help-account", rows: USERS, rowKey: u => u.id, columns: [
+        { key: "id", label: ["ユーザーID", "User ID"], value: u => u.id, cls: "mono" },
+        { key: "password", label: ["パスワード", "Password"], value: u => u.password, cls: "mono" },
+        { key: "name", label: ["氏名", "Name"], value: u => u.name, html: u => esc(t(u.name, u.nameEn)) },
+        { key: "dept", label: ["部署", "Department"], value: u => u.dept, html: u => esc(t(u.dept, u.deptEn)) },
+        { key: "role", label: ["ロール", "Role"], value: u => u.role, html: u => esc(ERP.roleName(u.role)) },
+      ] });
+
+      document.getElementById("perms").innerHTML = `<div class="table-wrap"><table class="data-table" id="perm-matrix">
+        <thead><tr><th data-col="perm">${t("操作", "Action")}</th>${Object.keys(ROLES).map(r => `<th data-col="${r}" class="center">${ERP.roleName(r)}</th>`).join("")}</tr></thead>
+        <tbody>${Object.keys(PERMISSIONS).map(p => `<tr id="perm-${p}" data-key="${p}"><td data-col="perm">${L(PERMISSION_LABELS[p])} <span class="muted mono">${p}</span></td>
+          ${Object.keys(ROLES).map(r => { const ok = PERMISSIONS[p].includes(r); return `<td data-col="${r}" data-value="${ok}" id="perm-${p}-${r}" class="center">${ok ? "✓" : "-"}</td>`; }).join("")}</tr>`).join("")}
+        <tr><td>${t("閲覧（全画面）", "View (all screens)")}</td>${Object.keys(ROLES).map(() => `<td class="center">✓</td>`).join("")}</tr></tbody></table></div>`;
+
+      document.getElementById("items").innerHTML = tableHtml({ id: "help-item-table", rowPrefix: "help-item", rows: ERP.products().filter(p => p.code < "P-10000").map(ERP.productRow), rowKey: r => r.code, columns: [
+        { key: "code", label: ["品目コード", "Code"], value: r => r.code, html: r => `<a href="${I18n.urlWith("product.html?code=" + r.code)}">${r.code}</a>`, cls: "nowrap" },
+        { key: "name", label: ["品名", "Name"], value: r => r.name, html: r => esc(t(r.name, r.nameEn)) },
+        { key: "unitPrice", label: ["販売単価", "Unit price"], value: r => r.unitPrice, html: r => yen(r.unitPrice), cls: "num" },
+        { key: "available", label: ["有効在庫", "Available"], value: r => r.available, html: r => num(r.available), cls: "num" },
+        { key: "status", label: ["ステータス", "Status"], value: r => r.status, html: r => badge("status", r.status) },
+        { key: "remarks", label: ["テスト観点", "Test point"], value: r => ERP.product(r.code).remarks, html: r => esc(t(ERP.product(r.code).remarks, ERP.product(r.code).remarksEn)) },
+      ] });
+
+      const PT = [["C-0001", "標準の得意先（与信限度額 ¥5,000,000）", "Standard customer (credit limit ¥5,000,000)"], ["C-0002", "取引停止の得意先（受注不可）", "Suspended customer (cannot order)"],
+        ["S-001", "標準の仕入先", "Standard supplier"]];
+      document.getElementById("partners").innerHTML = tableHtml({ id: "help-partner-table", rowPrefix: "help-partner", rows: PT, rowKey: p => p[0], columns: [
+        { key: "code", label: ["コード", "Code"], value: p => p[0], cls: "mono" },
+        { key: "name", label: ["名称", "Name"], value: p => ERP.partnerName(p[0]) },
+        { key: "status", label: ["取引状況", "Status"], value: p => ERP.partner(p[0]).status, html: p => badge("partnerStatus", ERP.partner(p[0]).status) },
+        { key: "note", label: ["テスト観点", "Test point"], value: p => p[1], html: p => esc(t(p[1], p[2])) },
+      ] });
+
+      document.getElementById("xpath").innerHTML = `
+        <p style="margin-bottom:8px">${t("一覧表は全画面で同じ規則で出力しています。表示テキスト（ラベル・書式付き金額）とは別に、<code>data-value</code> に生の値（コード値・数値・yyyy-mm-dd）を持たせています。",
+          "All tables follow the same rules. Besides the displayed text (labels, formatted amounts), <code>data-value</code> holds the raw value (codes, numbers, yyyy-mm-dd).")}</p>
+        <table class="data-table" id="xpath-table"><thead><tr><th>${t("対象", "Target")}</th><th>${t("規則", "Rule")}</th><th>${t("例", "Example")}</th></tr></thead><tbody>
+          <tr><td>${t("表", "Table")}</td><td><code>table[@id]</code></td><td><code>//table[@id='product-table']</code></td></tr>
+          <tr><td>${t("行", "Row")}</td><td><code>tr[@data-key]</code>（${t("品目コード・伝票番号など", "product code, document no., etc.")}）</td><td><code>//table[@id='product-table']//tr[@data-key='P-00001']</code></td></tr>
+          <tr><td>${t("セル", "Cell")}</td><td><code>td[@data-col]</code> / <code>@data-value</code></td><td><code>//tr[@data-key='P-00001']/td[@data-col='unitPrice']/@data-value</code> → 1000</td></tr>
+          <tr><td>${t("セル（ID）", "Cell (ID)")}</td><td><code>#{行接頭辞}-{キー}-{列}</code></td><td><code>#product-P-00001-unitPrice</code> / <code>#inv-P-00001-WH01-available</code></td></tr>
+          <tr><td>${t("列見出し", "Header")}</td><td><code>th[@data-col]</code></td><td><code>//table[@id='so-table']//th[@data-col='total']</code></td></tr>
+          <tr><td>${t("n行目", "n-th row")}</td><td><code>tr[@data-row]</code>（${t("表示中ページ内の1始まり", "1-based within page")}）</td><td><code>//table[@id='product-table']//tr[@data-row='1']/td[@data-col='code']</code></td></tr>
+          <tr><td>${t("詳細画面の項目", "Detail field")}</td><td><code>#d-{項目}</code> + <code>@data-value</code></td><td><code>//td[@id='d-unitPrice']/@data-value</code></td></tr>
+          <tr><td>${t("検索条件", "Search field")}</td><td><code>#s-{項目}</code>（${t("URLパラメータ名と同じ", "same as URL parameter")}）</td><td><code>#s-category</code> / <code>#s-priceMin</code> / <code>#s-status-active</code></td></tr>
+          <tr><td>${t("登録フォーム", "Form field")}</td><td><code>#f-{項目}</code> / ${t("エラー", "error")} <code>#err-{項目}</code> / <code>#g-{項目}.has-error</code></td><td><code>#f-unitPrice</code> / <code>#err-unitPrice</code></td></tr>
+          <tr><td>${t("明細入力", "Line input")}</td><td><code>#line-code-{n}</code> <code>#line-qty-{n}</code> <code>#line-amount-{n}</code></td><td><code>#sum-total/@data-value</code></td></tr>
+          <tr><td>${t("件数・ページ", "Count / pager")}</td><td><code>#result-count/@data-count</code> / <code>#pager[@data-current][@data-total]</code></td><td><code>#page-3</code> / <code>#next</code> / <code>#top-next</code></td></tr>
+          <tr><td>${t("左メニュー", "Side menu")}</td><td><code>#menu-{id}</code> / <code>a.menu-item.active</code></td><td><code>#menu-products</code> / <code>#menu-sales-orders</code></td></tr>
+          <tr><td>${t("ステータス", "Status badge")}</td><td><code>span.badge[@data-status]</code></td><td><code>//tr[@data-key='SO-2026-00001']//span[@data-status]</code></td></tr>
+          <tr><td>${t("権限で無効なボタン", "Disabled by permission")}</td><td><code>button[@data-perm][@disabled]</code></td><td><code>#btn-edit[disabled]</code>（${t("閲覧ユーザー", "viewer")}）</td></tr>
+        </tbody></table>`;
+
+      const files = [["product_search_cases.csv", "商品検索のテストケース（条件・URL・期待件数・先頭/末尾の品目）", "Product search cases (conditions, URL, expected count, first/last item)"],
+        ["products_expected.csv", "全商品の一覧表示値（商品マスター一覧の data-value と一致）", "All products as listed (matches data-value in the product list)"],
+        ["inventory_expected.csv", "品目×倉庫の在庫（在庫照会の data-value と一致）", "Stock by product × warehouse (matches stock inquiry)"],
+        ["sales_orders_expected.csv", "受注一覧の値（金額・数量・状態）", "Sales order list values"]];
+      document.getElementById("ddt").innerHTML = `
+        <p style="margin-bottom:8px">${t("商品マスターの検索条件はURLパラメータで指定できます。CSVの1行＝1テストケースとして、URLを開いて結果を検証するか、検索フォームに値を入れて検索してください。期待値は<strong>初期データ</strong>（下の「データを初期化する」直後）の値です。",
+          "Product search conditions can be given as URL parameters. Use one CSV row per test case: open the URL or fill the form, then verify. Expected values are for the <strong>initial data</strong> (right after Reset Data below).")}</p>
+        <p style="margin-bottom:8px"><code>products.html?category=ELC&amp;priceMin=1000&amp;statuses=active,suspended&amp;sort=price_desc&amp;pageSize=50&amp;page=2</code></p>
+        <p style="margin-bottom:8px" class="muted">${t("パラメータ：", "Parameters: ")}code / name / category / subCategory / maker / supplier / unit / priceMin / priceMax / statuses / stockStatus / warehouse / taxType / lotControl(yes|no) / origin / regFrom / regTo / sort / pageSize / page</p>
+        <ul style="margin-left:20px" id="ddt-files">${files.map(f => `<li><a href="testdata/${f[0]}" download id="dl-${f[0].replace(".csv", "")}">testdata/${f[0]}</a> – ${t(f[1], f[2])}</li>`).join("")}</ul>
+        <p class="muted mt-16">${t("※ 商品一覧の「CSV出力」でも、表示中の検索結果を同じ列名で出力できます。", "* \"Export CSV\" on the product list exports the current results with the same column names.")}</p>`;
+
+      document.getElementById("rules").innerHTML = [
+        ["受注できるのは「有効」の品目のみ。販売停止・廃番は受注不可。廃番は発注も不可。", "Only active items can be sold. Suspended/discontinued cannot be sold; discontinued cannot be purchased."],
+        ["受注時は出荷倉庫の有効在庫（現在庫−引当数）が必要数以上であること。登録すると引当される。", "Sales orders require enough available stock in the warehouse; registering allocates it."],
+        ["受注金額（税込）は得意先の与信残（与信限度額−未完了の受注合計）以内。取引停止の得意先・仕入先は選択不可。", "Order total must be within the customer's remaining credit. Suspended partners cannot be used."],
+        ["希望納期・入荷予定日は本日以降。数量は受注1〜9,999、発注1〜99,999の整数。", "Requested/expected dates must be today or later. Qty: 1-9,999 (sales), 1-99,999 (purchase)."],
+        ["消費税は明細ごとに 金額×税率（標準10%／軽減8%／非課税0%）を切り捨て。", "Tax = floor(amount × rate) per line (10% / 8% / 0%)."],
+        ["受注 → 出荷指示（配送データ作成）→ 出荷確定（在庫減・送り状番号12桁）→ 配達完了。出荷前のみキャンセル可。", "Order → Instruct → Ship (stock reduced, 12-digit tracking) → Delivered. Cancel only before shipping."],
+        ["発注 → 入荷処理で入荷倉庫の在庫が増える。発注済のみキャンセル可。", "Purchase order → Goods receipt increases stock. Only open orders can be cancelled."],
+        ["在庫調整は0以外の整数。調整後の在庫が引当数を下回る調整は不可。", "Adjustment must be a non-zero integer and cannot go below allocated."],
+        ["在庫状態：有効在庫0以下＝在庫なし／安全在庫未満＝安全在庫割れ／それ以外＝在庫あり（倉庫別は安全在庫÷3 切り上げで判定）。", "Stock status: ≤0 out / below safety stock low / otherwise in stock (per warehouse uses safety ÷ 3, rounded up)."],
+        ["商品登録：品目コード P-00000形式・重複不可、標準原価は販売単価以下、JANは13桁。", "Product: code P-00000 unique, cost ≤ unit price, JAN 13 digits."],
+      ].map(r => `<li style="margin-bottom:4px">${t(r[0], r[1])}</li>`).join("");
+    });
+
+    function resetData() {
+      if (!confirm(t("デモデータを初期化しますか？\n商品・受注・発注・配送・入出庫履歴が初期状態に戻り、ログアウトします。", "Reset demo data?\nAll data returns to the initial state and you will be logged out."))) return;
+      ERP.resetAll();
+      sessionStorage.removeItem("erp_flash");
+      I18n.go("login.html");
+    }
+  </script>
+</body>
+</html>

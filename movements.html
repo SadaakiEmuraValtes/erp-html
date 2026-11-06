@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>入出庫履歴 | VALTES ERP Demo</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <script src="js/i18n.js"></script>
+  <script src="data/master.js"></script>
+  <script src="js/core.js"></script>
+  <script src="js/layout.js"></script>
+
+  <div id="page" class="hidden">
+    <h1 class="page-title" id="page-title" data-i18n-en="🔁 Stock Movements">🔁 入出庫履歴</h1>
+
+    <form class="panel" id="search-form" onsubmit="event.preventDefault();search(1)">
+      <div class="panel-head" data-i18n-en="🔍 Search Conditions">🔍 検索条件</div>
+      <div class="panel-body">
+        <div class="search-grid">
+          <div class="form-group"><label for="s-code" data-i18n-en="Product code (partial)">品目コード（部分一致）</label><input type="text" id="s-code" name="code"></div>
+          <div class="form-group"><label for="s-warehouse" data-i18n-en="Warehouse">倉庫</label><select id="s-warehouse" name="warehouse"></select></div>
+          <div class="form-group"><label for="s-type" data-i18n-en="Type">区分</label><select id="s-type" name="type"></select></div>
+          <div class="form-group"><label for="s-dateFrom" data-i18n-en="Date (from - to)">日付（から〜まで）</label>
+            <div class="range"><input type="date" id="s-dateFrom" name="dateFrom"><span>〜</span><input type="date" id="s-dateTo" name="dateTo"></div></div>
+          <div class="form-group"><label for="s-ref" data-i18n-en="Reference No. (partial)">参照番号（部分一致）</label><input type="text" id="s-ref" name="ref" placeholder="SH- / PO- / ADJ-"></div>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" id="btn-clear" onclick="document.getElementById('search-form').reset();search(1)" data-i18n-en="Clear">クリア</button>
+          <button type="submit" class="btn btn-primary" id="btn-search" data-i18n-en="🔍 Search">🔍 検索</button>
+        </div>
+      </div>
+    </form>
+
+    <div class="toolbar" id="result-toolbar">
+      <span class="result-count" id="result-count"></span><span class="result-range" id="result-range"></span>
+      <div class="right"><div id="pager-top"></div></div>
+    </div>
+    <div id="results"></div>
+    <div class="pager-bottom" id="pager-bottom"></div>
+  </div>
+
+  <script>
+    const FIELDS = ["code", "warehouse", "type", "dateFrom", "dateTo", "ref"];
+    let rows = [], page = 1;
+
+    document.addEventListener("DOMContentLoaded", () => {
+      if (!buildPage({ title: t("入出庫履歴", "Stock Movements"), menu: "movements", crumbs: [["在庫管理", "Inventory"], ["入出庫履歴", "Stock Movements"]] })) return;
+      const all = t("すべて", "All");
+      document.getElementById("s-warehouse").innerHTML = optionsHtml(OPTS.warehouse(), "", all);
+      document.getElementById("s-type").innerHTML = optionsHtml(["receive", "ship", "adjust"].map(k => ({ value: k, label: ERP.label.moveType(k) })), "", all);
+      search(fillSearchForm(FIELDS));
+    });
+
+    function search(p) { rows = ERP.searchMovements(readSearchForm(FIELDS)); page = p; render(); }
+    function goPage(p) { page = p; render(); }
+
+    function render() {
+      page = renderPaged(rows, page, 20, slice => {
+        document.getElementById("results").innerHTML = tableHtml({ id: "movement-table", rowPrefix: "move", rows: slice, rowKey: m => m.seq,
+          emptyText: t("条件に一致する履歴はありません。", "No movements found."), rowAttrs: m => `data-type="${m.type}"`, columns: [
+          { key: "seq", label: ["No.", "No."], value: m => m.seq, cls: "num" },
+          { key: "date", label: ["日付", "Date"], value: m => m.date, html: m => dt(m.date), cls: "nowrap" },
+          { key: "type", label: ["区分", "Type"], value: m => m.type, html: m => badge("moveType", m.type) },
+          { key: "productCode", label: ["品目コード", "Code"], value: m => m.productCode, html: m => `<a href="${I18n.urlWith("product.html?code=" + m.productCode)}">${m.productCode}</a>`, cls: "nowrap" },
+          { key: "name", label: ["品名", "Name"], value: m => ERP.product(m.productCode)?.name || "", html: m => esc(ERP.productName(ERP.product(m.productCode))), cls: "cell-name" },
+          { key: "warehouse", label: ["倉庫", "Warehouse"], value: m => m.warehouse, cls: "nowrap" },
+          { key: "qty", label: ["数量", "Qty"], value: m => m.qty, html: m => `<span class="${m.qty < 0 ? "neg" : "pos"}">${m.qty > 0 ? "+" : ""}${num(m.qty)}</span>`, cls: "num" },
+          { key: "ref", label: ["参照番号", "Reference"], value: m => m.ref || "", cls: "nowrap mono" },
+          { key: "reason", label: ["調整理由", "Reason"], value: m => m.reason || "", html: m => m.reason ? esc(ERP.label.adjustReason(m.reason)) + (m.note ? `（${esc(m.note)}）` : "") : "-" },
+          { key: "user", label: ["担当者", "User"], value: m => m.user || "", html: m => esc(ERP.userName(m.user)), cls: "nowrap" },
+        ] });
+      }, "goPage");
+      writeSearchUrl(readSearchForm(FIELDS), page);
+    }
+  </script>
+</body>
+</html>

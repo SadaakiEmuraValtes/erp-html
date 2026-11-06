@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>ダッシュボード | VALTES ERP Demo</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <script src="js/i18n.js"></script>
+  <script src="data/master.js"></script>
+  <script src="js/core.js"></script>
+  <script src="js/layout.js"></script>
+
+  <div id="page" class="hidden">
+    <h1 class="page-title" id="page-title" data-i18n-en="📊 Dashboard">📊 ダッシュボード</h1>
+    <p class="page-desc" id="welcome"></p>
+    <div class="kpi-grid" id="kpi-grid"></div>
+    <div class="two-col">
+      <div class="panel">
+        <div class="panel-head"><span data-i18n-en="🧾 Recent Sales Orders">🧾 最近の受注</span><span class="right"><a href="sales-orders.html" id="link-more-so" data-i18n-en="See all →">すべて見る →</a></span></div>
+        <div class="panel-body" style="padding:0" id="recent-so"></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><span data-i18n-en="⚠️ Stock Alerts (active items)">⚠️ 在庫アラート（有効品目）</span><span class="right"><a href="products.html?stockStatus=low" id="link-more-low" data-i18n-en="Low stock →">安全在庫割れ →</a></span></div>
+        <div class="panel-body" style="padding:0" id="stock-alerts"></div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-head" data-i18n-en="🔑 Your Permissions">🔑 あなたの権限</div>
+      <div class="panel-body" style="padding:0" id="my-perms"></div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      if (!buildPage({ title: t("ダッシュボード", "Dashboard"), menu: "dashboard" })) return;
+      const u = ERP.currentUser(), d = ERP.dashboard();
+      document.getElementById("welcome").textContent = t(`${u.name} さん（${u.dept}／${ERP.roleName(u.role)}）、こんにちは。本日は ${dt(ERP.today())} です。`,
+        `Hello, ${u.nameEn} (${u.deptEn} / ${ERP.roleName(u.role)}). Today is ${dt(ERP.today())}.`);
+
+      const kpis = [
+        ["open-sales", t("未出荷の受注", "Unshipped sales orders"), d.openSales, "", "sales-orders.html?status=ordered"],
+        ["pending-shipments", t("出荷待ち", "Pending shipments"), d.pendingShipments, "warn", "shipments.html?status=pending"],
+        ["in-transit", t("配送中", "In transit"), d.inTransit, "", "shipments.html?status=in_transit"],
+        ["open-purchases", t("発注残（入荷待ち）", "Open purchase orders"), d.openPurchases, "", "purchase-orders.html?status=ordered"],
+        ["low-stock", t("安全在庫割れ品目", "Low-stock items"), d.lowStock, "warn", "products.html?statuses=active&stockStatus=low"],
+        ["out-of-stock", t("在庫なし品目", "Out-of-stock items"), d.outOfStock, "danger", "products.html?statuses=active&stockStatus=out"],
+        ["active-products", t("有効品目数", "Active items"), d.activeProducts, "", "products.html?statuses=active"],
+      ];
+      document.getElementById("kpi-grid").innerHTML = kpis.map(([id, label, v, cls, href]) => `
+        <a class="kpi" id="kpi-${id}" href="${I18n.urlWith(href)}" data-value="${v}">
+          <div class="kpi-label">${label}</div><div class="kpi-value ${cls}" id="kpi-${id}-value">${num(v)}</div></a>`).join("");
+
+      const recent = ERP.searchSalesOrders().slice(0, 6);
+      document.getElementById("recent-so").innerHTML = tableHtml({
+        id: "recent-so-table", rowPrefix: "recent-so", rows: recent, rowKey: o => o.no, columns: [
+          { key: "no", label: ["受注番号", "SO No."], value: o => o.no, html: o => `<a href="${I18n.urlWith("sales-order.html?no=" + o.no)}">${o.no}</a>`, cls: "nowrap" },
+          { key: "orderDate", label: ["受注日", "Date"], value: o => o.orderDate, html: o => dt(o.orderDate), cls: "nowrap" },
+          { key: "customer", label: ["得意先", "Customer"], value: o => o.customer, html: o => esc(ERP.partnerName(o.customer)) },
+          { key: "total", label: ["金額（税込）", "Total"], value: o => ERP.orderAmounts(o).total, html: o => yen(ERP.orderAmounts(o).total), cls: "num" },
+          { key: "status", label: ["状態", "Status"], value: o => o.status, html: o => badge("soStatus", o.status) },
+        ] });
+
+      document.getElementById("stock-alerts").innerHTML = tableHtml({
+        id: "stock-alert-table", rowPrefix: "alert", rows: d.alerts.slice(0, 8), rowKey: r => r.code, columns: [
+          { key: "code", label: ["品目コード", "Code"], value: r => r.code, html: r => `<a href="${I18n.urlWith("product.html?code=" + r.code)}">${r.code}</a>`, cls: "nowrap" },
+          { key: "name", label: ["品名", "Name"], value: r => r.name, html: r => esc(t(r.name, r.nameEn)) },
+          { key: "available", label: ["有効在庫", "Available"], value: r => r.available, html: r => num(r.available), cls: "num" },
+          { key: "safetyStock", label: ["安全在庫", "Safety"], value: r => r.safetyStock, html: r => num(r.safetyStock), cls: "num" },
+          { key: "stockStatus", label: ["状態", "Status"], value: r => r.stockStatus, html: r => badge("stockStatus", r.stockStatus) },
+        ] });
+
+      document.getElementById("my-perms").innerHTML = `<table class="data-table" id="my-perm-table"><tbody>${Object.keys(PERMISSIONS).map(p => {
+        const ok = ERP.can(p);
+        return `<tr id="my-perm-${p}" data-key="${p}"><td data-col="perm">${L(PERMISSION_LABELS[p])}</td>
+          <td data-col="allowed" data-value="${ok}" class="center">${ok ? `<span class="badge badge-ok">${t("可", "Allowed")}</span>` : `<span class="badge badge-gray">${t("不可", "Not allowed")}</span>`}</td></tr>`;
+      }).join("")}</tbody></table>`;
+    });
+  </script>
+</body>
+</html>

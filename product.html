@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>商品詳細 | VALTES ERP Demo</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <script src="js/i18n.js"></script>
+  <script src="data/master.js"></script>
+  <script src="js/core.js"></script>
+  <script src="js/layout.js"></script>
+
+  <div id="page" class="hidden"></div>
+
+  <script>
+    // ?code=P-00001 → 詳細 / ?mode=edit&code=P-00001 → 編集 / ?mode=new → 新規登録
+    const mode = qp("mode") || "view", code = qp("code");
+    const FORM_FIELDS = ["code", "name", "nameEn", "category", "subCategory", "maker", "supplier", "unit", "unitPrice", "cost", "taxType", "status",
+      "safetyStock", "leadTimeDays", "weight", "origin", "jan", "remarks"];
+
+    document.addEventListener("DOMContentLoaded", () => {
+      const isNew = mode === "new", isEdit = mode === "edit";
+      const title = isNew ? t("商品登録", "New Product") : isEdit ? t("商品編集", "Edit Product") : t("商品詳細", "Product Details");
+      if (!buildPage({ title, menu: isNew ? "product-new" : "products",
+        crumbs: [["マスター", "Master Data"], ["商品マスター", "Products", "products.html"], [title, title]] })) return;
+      const page = document.getElementById("page");
+      const p = code ? ERP.product(code) : null;
+      if (!isNew && !p) {
+        page.innerHTML = `<div class="alert alert-danger" id="not-found">${t(`品目コード ${esc(code || "")} は存在しません。`, `Product ${esc(code || "")} not found.`)}</div>
+          <a class="btn btn-secondary" href="${I18n.urlWith("products.html")}" id="btn-back">${t("← 一覧へ戻る", "← Back to list")}</a>`;
+        return;
+      }
+      if ((isNew || isEdit) && !ERP.can("product_edit")) {
+        page.innerHTML = `<div class="alert alert-danger" id="no-permission">${t("商品マスターを登録・編集する権限がありません。", "You do not have permission to edit the product master.")}</div>
+          <a class="btn btn-secondary" href="${I18n.urlWith("products.html")}" id="btn-back">${t("← 一覧へ戻る", "← Back to list")}</a>`;
+        return;
+      }
+      if (isNew || isEdit) renderForm(p, isNew); else renderView(p);
+      showFlash();
+    });
+
+    // ══════════ 詳細表示 ══════════
+    function renderView(p) {
+      const r = ERP.productRow(p);
+      const row = (key, label, value, html) => `<tr data-field="${key}"><th>${label}</th><td id="d-${key}" data-value="${esc(value)}">${html ?? esc(value)}</td></tr>`;
+      document.getElementById("page").innerHTML = `
+        <h1 class="page-title" id="page-title"><span id="title-code" class="mono">${p.code}</span> <span id="title-name">${esc(ERP.productName(p))}</span> ${badge("status", p.status)}
+          <span class="title-actions">
+            <button class="btn btn-primary" id="btn-edit" ${permAttr("product_edit")} onclick="I18n.go('product.html?mode=edit&code=${p.code}')">✏️ ${t("編集", "Edit")}</button>
+            <a class="btn btn-secondary" id="btn-back" href="${I18n.urlWith("products.html")}">${t("← 一覧へ", "← List")}</a>
+          </span></h1>
+        <div class="detail-cols">
+          <div class="panel"><div class="panel-head">${t("基本情報", "Basic Information")}</div>
+            <table class="detail-table" id="detail-basic">
+              ${row("code", t("品目コード", "Code"), p.code)}
+              ${row("name", t("品名", "Name"), p.name)}
+              ${row("nameEn", t("品名（英語）", "Name (English)"), p.nameEn)}
+              ${row("category", t("カテゴリ", "Category"), p.category, `${p.category} ${esc(ERP.label.category(p.category))}`)}
+              ${row("subCategory", t("サブカテゴリ", "Sub-category"), p.subCategory, `${p.subCategory} ${esc(ERP.label.subCategory(p.subCategory))}`)}
+              ${row("maker", t("メーカー", "Maker"), p.maker, `${p.maker} ${esc(ERP.label.maker(p.maker))}`)}
+              ${row("supplier", t("仕入先", "Supplier"), p.supplier, `${p.supplier} ${esc(ERP.partnerName(p.supplier))}`)}
+              ${row("origin", t("原産国", "Origin"), p.origin, esc(ERP.label.origin(p.origin)))}
+              ${row("jan", t("JANコード", "JAN code"), p.jan, `<span class="mono">${esc(p.jan)}</span>`)}
+              ${row("status", t("ステータス", "Status"), p.status, badge("status", p.status))}
+              ${row("registeredAt", t("登録日", "Registered"), p.registeredAt, dt(p.registeredAt))}
+              ${row("updatedAt", t("更新日", "Updated"), p.updatedAt, dt(p.updatedAt))}
+              ${row("remarks", t("備考", "Remarks"), p.remarks, esc(t(p.remarks, p.remarksEn || p.remarks)) || "-")}
+            </table></div>
+          <div class="panel"><div class="panel-head">${t("価格・管理情報", "Price & Control")}</div>
+            <table class="detail-table" id="detail-price">
+              ${row("unit", t("単位", "Unit"), p.unit, esc(ERP.label.unit(p.unit)))}
+              ${row("unitPrice", t("販売単価", "Unit price"), p.unitPrice, yen(p.unitPrice))}
+              ${row("cost", t("標準原価", "Cost"), p.cost, yen(p.cost))}
+              ${row("marginRate", t("粗利率", "Margin"), r.marginRate.toFixed(1), r.marginRate.toFixed(1) + "%")}
+              ${row("taxType", t("課税区分", "Tax type"), p.taxType, esc(ERP.label.tax(p.taxType)))}
+              ${row("priceWithTax", t("税込単価", "Price incl. tax"), Math.floor(p.unitPrice * (1 + TAX_TYPES[p.taxType].rate)), yen(Math.floor(p.unitPrice * (1 + TAX_TYPES[p.taxType].rate))))}
+              ${row("lotControl", t("ロット管理", "Lot control"), p.lotControl ? "yes" : "no", p.lotControl ? t("あり", "Yes") : t("なし", "No"))}
+              ${row("leadTimeDays", t("調達リードタイム", "Lead time"), p.leadTimeDays, t(`${p.leadTimeDays} 日`, `${p.leadTimeDays} days`))}
+              ${row("safetyStock", t("安全在庫", "Safety stock"), p.safetyStock, num(p.safetyStock))}
+              ${row("weight", t("重量", "Weight"), p.weight, `${num(p.weight)} g`)}
+              ${row("totalStock", t("総在庫", "On hand"), r.totalStock, num(r.totalStock))}
+              ${row("allocated", t("引当数", "Allocated"), r.allocated, num(r.allocated))}
+              ${row("available", t("有効在庫", "Available"), r.available, num(r.available))}
+              ${row("onOrder", t("発注残", "On order"), r.onOrder, num(r.onOrder))}
+              ${row("stockStatus", t("在庫状態", "Stock status"), r.stockStatus, badge("stockStatus", r.stockStatus))}
+            </table></div>
+        </div>
+        <div class="panel"><div class="panel-head">${t("倉庫別在庫", "Stock by Warehouse")}
+            <span class="right"><a href="${I18n.urlWith("inventory.html?code=" + p.code)}" id="link-inventory">${t("在庫照会へ →", "Stock inquiry →")}</a></span></div>
+          <div id="stock-by-wh"></div></div>
+        <div class="panel"><div class="panel-head">${t("入出庫履歴（直近10件）", "Recent Movements (10)")}
+            <span class="right"><a href="${I18n.urlWith("movements.html?code=" + p.code)}" id="link-movements">${t("すべて見る →", "See all →")}</a>
+            <a href="${I18n.urlWith("sales-orders.html?productCode=" + p.code)}" id="link-sales-orders">${t("この品目の受注 →", "Sales orders →")}</a></span></div>
+          <div id="recent-moves"></div></div>`;
+
+      document.getElementById("stock-by-wh").innerHTML = tableHtml({ id: "product-stock-table", rowPrefix: "stock", rows: WAREHOUSES.map(w => ERP.inventory(p.code, w.code)),
+        rowKey: i => i.warehouse, columns: [
+          { key: "warehouse", label: ["倉庫", "Warehouse"], value: i => i.warehouse, html: i => `${i.warehouse} ${esc(ERP.label.warehouse(i.warehouse))}` },
+          { key: "qty", label: ["現在庫", "On hand"], value: i => i.qty, html: i => num(i.qty), cls: "num" },
+          { key: "allocated", label: ["引当数", "Allocated"], value: i => i.allocated, html: i => num(i.allocated), cls: "num" },
+          { key: "available", label: ["有効在庫", "Available"], value: i => i.available, html: i => num(i.available), cls: "num" },
+          { key: "onOrder", label: ["発注残", "On order"], value: i => i.onOrder, html: i => num(i.onOrder), cls: "num" },
+          { key: "safety", label: ["安全在庫", "Safety"], value: i => i.safety, html: i => num(i.safety), cls: "num" },
+          { key: "status", label: ["状態", "Status"], value: i => i.status, html: i => badge("stockStatus", i.status) },
+        ] });
+      document.getElementById("recent-moves").innerHTML = tableHtml({ id: "product-move-table", rowPrefix: "move", rows: ERP.searchMovements({ code: p.code }).filter(m => m.productCode === p.code).slice(0, 10),
+        rowKey: m => m.seq, emptyText: t("入出庫履歴はありません。", "No movements."), columns: [
+          { key: "date", label: ["日付", "Date"], value: m => m.date, html: m => dt(m.date), cls: "nowrap" },
+          { key: "type", label: ["区分", "Type"], value: m => m.type, html: m => badge("moveType", m.type) },
+          { key: "warehouse", label: ["倉庫", "Warehouse"], value: m => m.warehouse },
+          { key: "qty", label: ["数量", "Qty"], value: m => m.qty, html: m => `<span class="${m.qty < 0 ? "neg" : "pos"}">${m.qty > 0 ? "+" : ""}${num(m.qty)}</span>`, cls: "num" },
+          { key: "ref", label: ["参照番号", "Reference"], value: m => m.ref, cls: "nowrap" },
+        ] });
+    }
+
+    // ══════════ 登録・編集フォーム ══════════
+    function renderForm(p, isNew) {
+      const v = p || { code: "", name: "", nameEn: "", category: "", subCategory: "", maker: "MK01", supplier: "S-001", unit: "pcs", unitPrice: "", cost: "",
+        taxType: "standard", status: "active", safetyStock: 0, leadTimeDays: 7, weight: 0, origin: "JP", jan: "", remarks: "", lotControl: false };
+      const g = (key, label, input, req = false, full = false) => `<div class="form-group${full ? " full" : ""}" id="g-${key}">
+        <label for="f-${key}" class="${req ? "req" : ""}">${label}</label>${input}<span class="err" id="err-${key}"></span></div>`;
+      const txt = (key, val, attrs = "") => `<input type="text" id="f-${key}" name="${key}" value="${esc(val)}" ${attrs}>`;
+      const sel = (key, opts, val, empty) => `<select id="f-${key}" name="${key}" ${key === "category" ? 'onchange="onFormCategory()"' : ""}>${optionsHtml(opts, val, empty)}</select>`;
+      document.getElementById("page").innerHTML = `
+        <h1 class="page-title" id="page-title">${isNew ? t("➕ 商品登録", "➕ New Product") : `✏️ ${t("商品編集", "Edit Product")} <span class="mono">${p.code}</span>`}</h1>
+        <div id="form-errors" class="alert alert-danger hidden" role="alert"></div>
+        <form class="panel" id="product-form" onsubmit="event.preventDefault();save(${isNew})"><div class="panel-body">
+          <div class="form-grid">
+            ${g("code", t("品目コード（P-00000形式）", "Product code (P-00000)"), txt("code", v.code, isNew ? 'placeholder="P-20001"' : "readonly"), true)}
+            ${g("status", t("ステータス", "Status"), sel("status", OPTS.status(), v.status), true)}
+            ${g("name", t("品名", "Name"), txt("name", v.name, 'maxlength="120"'), true, true)}
+            ${g("nameEn", t("品名（英語）", "Name (English)"), txt("nameEn", v.nameEn), false, true)}
+            ${g("category", t("カテゴリ", "Category"), sel("category", OPTS.category(), v.category, t("選択してください", "Select")), true)}
+            ${g("subCategory", t("サブカテゴリ", "Sub-category"), sel("subCategory", OPTS.subCategory(v.category), v.subCategory, t("選択してください", "Select")), true)}
+            ${g("maker", t("メーカー", "Maker"), sel("maker", OPTS.maker(), v.maker))}
+            ${g("supplier", t("仕入先", "Supplier"), sel("supplier", OPTS.supplier(), v.supplier))}
+            ${g("unit", t("単位", "Unit"), sel("unit", OPTS.unit(), v.unit), true)}
+            ${g("taxType", t("課税区分", "Tax type"), sel("taxType", OPTS.tax(), v.taxType), true)}
+            ${g("unitPrice", t("販売単価（円）", "Unit price (JPY)"), txt("unitPrice", v.unitPrice, 'inputmode="numeric"'), true)}
+            ${g("cost", t("標準原価（円）", "Cost (JPY)"), txt("cost", v.cost, 'inputmode="numeric"'), true)}
+            ${g("safetyStock", t("安全在庫", "Safety stock"), txt("safetyStock", v.safetyStock, 'inputmode="numeric"'), true)}
+            ${g("leadTimeDays", t("調達リードタイム（日）", "Lead time (days)"), txt("leadTimeDays", v.leadTimeDays, 'inputmode="numeric"'), true)}
+            ${g("weight", t("重量（g）", "Weight (g)"), txt("weight", v.weight, 'inputmode="numeric"'), true)}
+            ${g("origin", t("原産国", "Origin"), sel("origin", OPTS.origin(), v.origin))}
+            ${g("jan", t("JANコード（13桁）", "JAN code (13 digits)"), txt("jan", v.jan, 'inputmode="numeric" maxlength="13"'))}
+            <div class="form-group" id="g-lotControl"><span class="form-label">${t("ロット管理", "Lot control")}</span>
+              <label class="check-group" for="f-lotControl"><input type="checkbox" id="f-lotControl" name="lotControl" ${v.lotControl ? "checked" : ""}> ${t("ロット管理する", "Lot-controlled")}</label></div>
+            ${g("remarks", t("備考", "Remarks"), `<textarea id="f-remarks" name="remarks" rows="3">${esc(v.remarks)}</textarea>`, false, true)}
+          </div>
+          <div class="form-actions">
+            <a class="btn btn-secondary" id="btn-cancel" href="${I18n.urlWith(isNew ? "products.html" : "product.html?code=" + p.code)}">${t("キャンセル", "Cancel")}</a>
+            <button type="submit" class="btn btn-primary" id="btn-save">${isNew ? t("登録する", "Register") : t("保存する", "Save")}</button>
+          </div>
+        </div></form>`;
+    }
+
+    function onFormCategory() {
+      document.getElementById("f-subCategory").innerHTML = optionsHtml(OPTS.subCategory(document.getElementById("f-category").value), "", t("選択してください", "Select"));
+    }
+
+    function save(isNew) {
+      const d = {};
+      FORM_FIELDS.forEach(f => { d[f] = document.getElementById("f-" + f).value.trim(); });
+      d.lotControl = document.getElementById("f-lotControl").checked;
+      const res = ERP.saveProduct(d, isNew);
+      showErrors(res.ok ? {} : res.errors, FORM_FIELDS);
+      if (!res.ok) { window.scrollTo({ top: 0, behavior: "smooth" }); return; }
+      setFlash(isNew ? t(`商品 ${d.code} を登録しました。`, `Product ${d.code} has been registered.`) : t(`商品 ${d.code} を更新しました。`, `Product ${d.code} has been updated.`));
+      I18n.go("product.html?code=" + d.code);
+    }
+  </script>
+</body>
+</html>

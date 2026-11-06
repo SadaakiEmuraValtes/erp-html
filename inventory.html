@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>在庫照会 | VALTES ERP Demo</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <script src="js/i18n.js"></script>
+  <script src="data/master.js"></script>
+  <script src="js/core.js"></script>
+  <script src="js/layout.js"></script>
+
+  <div id="page" class="hidden">
+    <h1 class="page-title" id="page-title" data-i18n-en="🏬 Stock Inquiry">🏬 在庫照会</h1>
+    <p class="page-desc" data-i18n-en="One row per product × warehouse. Available = On hand − Allocated (open sales orders). Safety stock per warehouse = product safety stock ÷ 3 (rounded up).">品目×倉庫ごとの在庫です。有効在庫＝現在庫−引当数（未出荷の受注）。倉庫別の安全在庫＝品目の安全在庫÷3（切り上げ）。</p>
+
+    <form class="panel" id="search-form" onsubmit="event.preventDefault();search(1)">
+      <div class="panel-head" data-i18n-en="🔍 Search Conditions">🔍 検索条件</div>
+      <div class="panel-body">
+        <div class="search-grid">
+          <div class="form-group"><label for="s-code" data-i18n-en="Product code (partial)">品目コード（部分一致）</label><input type="text" id="s-code" name="code"></div>
+          <div class="form-group"><label for="s-name" data-i18n-en="Name (partial)">品名（部分一致）</label><input type="text" id="s-name" name="name"></div>
+          <div class="form-group"><label for="s-category" data-i18n-en="Category">カテゴリ</label><select id="s-category" name="category"></select></div>
+          <div class="form-group"><label for="s-warehouse" data-i18n-en="Warehouse">倉庫</label><select id="s-warehouse" name="warehouse"></select></div>
+          <div class="form-group"><label for="s-stockStatus" data-i18n-en="Stock status">在庫状態</label><select id="s-stockStatus" name="stockStatus"></select></div>
+          <div class="form-group"><span class="form-label" data-i18n-en="Option">オプション</span>
+            <label class="check-group" for="s-onlyStocked"><input type="checkbox" id="s-onlyStocked" name="onlyStocked" value="1"> <span data-i18n-en="Only rows with stock">在庫ありの行のみ</span></label></div>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" id="btn-clear" onclick="document.getElementById('search-form').reset();search(1)" data-i18n-en="Clear">クリア</button>
+          <button type="submit" class="btn btn-primary" id="btn-search" data-i18n-en="🔍 Search">🔍 検索</button>
+        </div>
+      </div>
+    </form>
+
+    <div class="toolbar" id="result-toolbar">
+      <span class="result-count" id="result-count"></span><span class="result-range" id="result-range"></span>
+      <div class="right"><span class="muted" id="sum-qty"></span><div id="pager-top"></div></div>
+    </div>
+    <div id="results"></div>
+    <div class="pager-bottom" id="pager-bottom"></div>
+  </div>
+
+  <script>
+    const FIELDS = ["code", "name", "category", "warehouse", "stockStatus", "onlyStocked"];
+    let rows = [], page = 1;
+
+    document.addEventListener("DOMContentLoaded", () => {
+      if (!buildPage({ title: t("在庫照会", "Stock Inquiry"), menu: "inventory", crumbs: [["在庫管理", "Inventory"], ["在庫照会", "Stock Inquiry"]] })) return;
+      const all = t("すべて", "All");
+      document.getElementById("s-category").innerHTML = optionsHtml(OPTS.category(), "", all);
+      document.getElementById("s-warehouse").innerHTML = optionsHtml(OPTS.warehouse(), "", all);
+      document.getElementById("s-stockStatus").innerHTML = optionsHtml(OPTS.stockStatus(), "", all);
+      search(fillSearchForm(FIELDS));
+    });
+
+    function search(p) { rows = ERP.searchInventory(readSearchForm(FIELDS)); page = p; render(); }
+    function goPage(p) { page = p; render(); }
+
+    function render() {
+      const sum = rows.reduce((s, r) => s + r.qty, 0);
+      const el = document.getElementById("sum-qty");
+      el.textContent = t(`現在庫合計：${num(sum)}`, `Total on hand: ${num(sum)}`); el.dataset.value = sum;
+      page = renderPaged(rows, page, 50, slice => {
+        document.getElementById("results").innerHTML = tableHtml({ id: "inventory-table", rowPrefix: "inv", rows: slice, rowKey: r => `${r.productCode}-${r.warehouse}`,
+          emptyText: t("条件に一致する在庫はありません。", "No stock found."), rowAttrs: r => `data-code="${r.productCode}" data-warehouse="${r.warehouse}" data-status="${r.status}"`, columns: [
+          { key: "productCode", label: ["品目コード", "Code"], value: r => r.productCode, html: r => `<a href="${I18n.urlWith("product.html?code=" + r.productCode)}">${r.productCode}</a>`, cls: "nowrap" },
+          { key: "name", label: ["品名", "Name"], value: r => ERP.product(r.productCode).name, html: r => esc(ERP.productName(ERP.product(r.productCode))), cls: "cell-name" },
+          { key: "warehouse", label: ["倉庫", "Warehouse"], value: r => r.warehouse, html: r => `${r.warehouse} ${esc(ERP.label.warehouse(r.warehouse))}`, cls: "nowrap" },
+          { key: "qty", label: ["現在庫", "On hand"], value: r => r.qty, html: r => num(r.qty), cls: "num" },
+          { key: "allocated", label: ["引当数", "Allocated"], value: r => r.allocated, html: r => num(r.allocated), cls: "num" },
+          { key: "available", label: ["有効在庫", "Available"], value: r => r.available, html: r => num(r.available), cls: "num" },
+          { key: "onOrder", label: ["発注残", "On order"], value: r => r.onOrder, html: r => num(r.onOrder), cls: "num" },
+          { key: "safety", label: ["安全在庫", "Safety"], value: r => r.safety, html: r => num(r.safety), cls: "num" },
+          { key: "status", label: ["在庫状態", "Status"], value: r => r.status, html: r => badge("stockStatus", r.status) },
+          { key: "action", label: ["操作", "Action"], value: () => "", html: r =>
+            `<button class="btn btn-secondary btn-sm" id="btn-adjust-${r.productCode}-${r.warehouse}" ${permAttr("inv_adjust")} onclick="openAdjust('${r.productCode}','${r.warehouse}')">${t("調整", "Adjust")}</button>` },
+        ] });
+      }, "goPage");
+      writeSearchUrl(readSearchForm(FIELDS), page);
+    }
+
+    function openAdjust(code, wh) {
+      const i = ERP.inventory(code, wh);
+      openModal("adjust-modal", t("在庫調整", "Inventory Adjustment"), `
+        <table class="detail-table" id="adjust-info">
+          <tr><th>${t("品目", "Product")}</th><td id="adjust-product" data-value="${code}">${code} ${esc(ERP.productName(ERP.product(code)))}</td></tr>
+          <tr><th>${t("倉庫", "Warehouse")}</th><td id="adjust-warehouse" data-value="${wh}">${wh} ${esc(ERP.label.warehouse(wh))}</td></tr>
+          <tr><th>${t("現在庫／引当数", "On hand / Allocated")}</th><td id="adjust-current" data-value="${i.qty}">${num(i.qty)} ／ ${num(i.allocated)}</td></tr>
+          <tr><th>${t("調整後在庫", "After adjustment")}</th><td id="adjust-after" data-value="${i.qty}">${num(i.qty)}</td></tr>
+        </table>
+        <div class="form-group"><label for="m-qty" class="req">${t("調整数（減らす場合はマイナス）", "Quantity (negative to decrease)")}</label>
+          <input type="text" id="m-qty" inputmode="numeric" placeholder="-5" oninput="previewAdjust(${i.qty})"></div>
+        <div class="form-group"><label for="m-reason" class="req">${t("調整理由", "Reason")}</label><select id="m-reason">${optionsHtml(OPTS.reason(), "", t("選択してください", "Select"))}</select></div>
+        <div class="form-group"><label for="m-note">${t("メモ", "Note")}</label><input type="text" id="m-note" maxlength="100"></div>
+        <div class="alert alert-danger hidden" id="adjust-error" role="alert"></div>`,
+        `<button class="btn btn-secondary" id="btn-adjust-cancel" onclick="closeModal('adjust-modal')">${t("キャンセル", "Cancel")}</button>
+         <button class="btn btn-primary" id="btn-confirm-adjust" onclick="doAdjust('${code}','${wh}')">${t("調整する", "Adjust")}</button>`);
+    }
+
+    function previewAdjust(base) {
+      const v = document.getElementById("m-qty").value.trim(), el = document.getElementById("adjust-after");
+      const after = /^-?\d+$/.test(v) ? base + Number(v) : base;
+      el.textContent = num(after); el.dataset.value = after;
+    }
+
+    function doAdjust(code, wh) {
+      const res = ERP.adjustInventory(code, wh, document.getElementById("m-qty").value.trim(), document.getElementById("m-reason").value, document.getElementById("m-note").value);
+      if (!res.ok) { const e = document.getElementById("adjust-error"); e.textContent = res.msg; e.classList.remove("hidden"); return; }
+      closeModal("adjust-modal");
+      toast(t(`${code}（${wh}）の在庫を調整しました（現在庫 ${res.inventory.qty}）`, `Adjusted ${code} (${wh}) – on hand ${res.inventory.qty}`), "success");
+      search(page);
+    }
+  </script>
+</body>
+</html>

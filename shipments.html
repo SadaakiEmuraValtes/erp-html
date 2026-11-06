@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>配送管理 | VALTES ERP Demo</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <script src="js/i18n.js"></script>
+  <script src="data/master.js"></script>
+  <script src="js/core.js"></script>
+  <script src="js/layout.js"></script>
+
+  <div id="page" class="hidden">
+    <h1 class="page-title" id="page-title" data-i18n-en="🚚 Shipments">🚚 配送管理</h1>
+    <p class="page-desc" data-i18n-en="Flow: Instruct shipment (sales order) → Confirm shipment (stock is reduced) → Confirm delivery">流れ：出荷指示（受注画面）→ 出荷確定（在庫が減る）→ 配達完了</p>
+
+    <form class="panel" id="search-form" onsubmit="event.preventDefault();search(1)">
+      <div class="panel-head" data-i18n-en="🔍 Search Conditions">🔍 検索条件</div>
+      <div class="panel-body">
+        <div class="search-grid">
+          <div class="form-group"><label for="s-no" data-i18n-en="Shipment No. (partial)">配送番号（部分一致）</label><input type="text" id="s-no" name="no" placeholder="SH-2026-"></div>
+          <div class="form-group"><label for="s-salesOrderNo" data-i18n-en="SO No. (partial)">受注番号（部分一致）</label><input type="text" id="s-salesOrderNo" name="salesOrderNo"></div>
+          <div class="form-group"><label for="s-status" data-i18n-en="Status">状態</label><select id="s-status" name="status"></select></div>
+          <div class="form-group"><label for="s-warehouse" data-i18n-en="Warehouse">出荷倉庫</label><select id="s-warehouse" name="warehouse"></select></div>
+          <div class="form-group"><label for="s-carrier" data-i18n-en="Carrier">配送業者</label><select id="s-carrier" name="carrier"></select></div>
+          <div class="form-group"><label for="s-dateFrom" data-i18n-en="Planned date (from - to)">出荷予定日（から〜まで）</label>
+            <div class="range"><input type="date" id="s-dateFrom" name="dateFrom"><span>〜</span><input type="date" id="s-dateTo" name="dateTo"></div></div>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" id="btn-clear" onclick="document.getElementById('search-form').reset();search(1)" data-i18n-en="Clear">クリア</button>
+          <button type="submit" class="btn btn-primary" id="btn-search" data-i18n-en="🔍 Search">🔍 検索</button>
+        </div>
+      </div>
+    </form>
+
+    <div class="toolbar" id="result-toolbar">
+      <span class="result-count" id="result-count"></span><span class="result-range" id="result-range"></span>
+      <div class="right"><div id="pager-top"></div></div>
+    </div>
+    <div id="results"></div>
+    <div class="pager-bottom" id="pager-bottom"></div>
+  </div>
+
+  <script>
+    const FIELDS = ["no", "salesOrderNo", "status", "warehouse", "carrier", "dateFrom", "dateTo"];
+    let rows = [], page = 1;
+
+    document.addEventListener("DOMContentLoaded", () => {
+      if (!buildPage({ title: t("配送管理", "Shipments"), menu: "shipments", crumbs: [["物流", "Logistics"], ["配送管理", "Shipments"]] })) return;
+      const all = t("すべて", "All");
+      document.getElementById("s-status").innerHTML = optionsHtml(["pending", "in_transit", "delivered"].map(k => ({ value: k, label: ERP.label.shStatus(k) })), "", all);
+      document.getElementById("s-warehouse").innerHTML = optionsHtml(OPTS.warehouse(), "", all);
+      document.getElementById("s-carrier").innerHTML = optionsHtml(OPTS.carrier(), "", all);
+      search(fillSearchForm(FIELDS));
+    });
+
+    function search(p) { rows = ERP.searchShipments(readSearchForm(FIELDS)); page = p; render(); }
+    function goPage(p) { page = p; render(); }
+
+    function render() {
+      page = renderPaged(rows, page, 20, slice => {
+        document.getElementById("results").innerHTML = tableHtml({ id: "shipment-table", rowPrefix: "shipment", rows: slice, rowKey: s => s.no,
+          emptyText: t("条件に一致する配送はありません。", "No shipments found."), rowAttrs: s => `data-status="${s.status}"`, columns: [
+          { key: "no", label: ["配送番号", "Shipment No."], value: s => s.no, cls: "nowrap mono" },
+          { key: "salesOrderNo", label: ["受注番号", "SO No."], value: s => s.salesOrderNo, html: s => `<a href="${I18n.urlWith("sales-order.html?no=" + s.salesOrderNo)}">${s.salesOrderNo}</a>`, cls: "nowrap" },
+          { key: "customer", label: ["得意先", "Customer"], value: s => ERP.salesOrder(s.salesOrderNo)?.customer || "", html: s => esc(ERP.partnerName(ERP.salesOrder(s.salesOrderNo)?.customer)) },
+          { key: "warehouse", label: ["出荷倉庫", "Warehouse"], value: s => s.warehouse, cls: "nowrap" },
+          { key: "plannedDate", label: ["出荷予定日", "Planned"], value: s => s.plannedDate, html: s => dt(s.plannedDate), cls: "nowrap" },
+          { key: "carrier", label: ["配送業者", "Carrier"], value: s => s.carrier, html: s => esc(ERP.label.carrier(s.carrier)) || "-", cls: "nowrap" },
+          { key: "trackingNo", label: ["送り状番号", "Tracking No."], value: s => s.trackingNo, html: s => esc(s.trackingNo) || "-", cls: "mono nowrap" },
+          { key: "shipDate", label: ["出荷日", "Shipped"], value: s => s.shipDate || "", html: s => s.shipDate ? dt(s.shipDate) : "-", cls: "nowrap" },
+          { key: "deliveredDate", label: ["配達日", "Delivered"], value: s => s.deliveredDate || "", html: s => s.deliveredDate ? dt(s.deliveredDate) : "-", cls: "nowrap" },
+          { key: "status", label: ["状態", "Status"], value: s => s.status, html: s => badge("shStatus", s.status) },
+          { key: "action", label: ["操作", "Action"], value: () => "", cls: "nowrap", html: s =>
+            s.status === "pending" ? `<button class="btn btn-primary btn-sm" id="btn-ship-${s.no}" ${permAttr("ship")} onclick="openShip('${s.no}')">${t("出荷確定", "Ship")}</button>`
+            : s.status === "in_transit" ? `<button class="btn btn-ok btn-sm" id="btn-deliver-${s.no}" ${permAttr("ship")} onclick="deliver('${s.no}')">${t("配達完了", "Delivered")}</button>` : "" },
+        ] });
+      }, "goPage");
+      writeSearchUrl(readSearchForm(FIELDS), page);
+    }
+
+    function openShip(no) {
+      const s = ERP.shipment(no), o = ERP.salesOrder(s.salesOrderNo);
+      openModal("ship-modal", t(`出荷確定：${no}`, `Confirm shipment: ${no}`), `
+        <div class="muted">${t("受注番号", "SO No.")}: ${o.no} ／ ${esc(ERP.partnerName(o.customer))}</div>
+        <table class="data-table" id="ship-lines">${o.lines.map((l, i) => `<tr id="ship-line-${i + 1}"><td>${l.productCode}</td><td>${esc(ERP.productName(ERP.product(l.productCode)))}</td>
+          <td class="num" data-col="qty" data-value="${l.qty}">${num(l.qty)}</td><td class="num muted">${t("在庫", "Stock")} ${num(ERP.inventory(l.productCode, s.warehouse).qty)}</td></tr>`).join("")}</table>
+        <div class="form-group"><label for="m-carrier" class="req">${t("配送業者", "Carrier")}</label><select id="m-carrier">${optionsHtml(OPTS.carrier(), "", t("選択してください", "Select"))}</select></div>
+        <div class="form-group"><label for="m-tracking" class="req">${t("送り状番号（12桁）", "Tracking No. (12 digits)")}</label>
+          <div class="range"><input type="text" id="m-tracking" maxlength="12" inputmode="numeric"><button type="button" class="btn btn-secondary btn-sm" id="btn-gen-tracking"
+            onclick="document.getElementById('m-tracking').value=String(Math.floor(1e11+Math.random()*9e11))">${t("自動採番", "Generate")}</button></div></div>
+        <div class="alert alert-danger hidden" id="ship-error" role="alert"></div>`,
+        `<button class="btn btn-secondary" id="btn-ship-cancel" onclick="closeModal('ship-modal')">${t("キャンセル", "Cancel")}</button>
+         <button class="btn btn-primary" id="btn-confirm-ship" onclick="confirmShip('${no}')">${t("出荷確定する", "Confirm")}</button>`);
+    }
+
+    function confirmShip(no) {
+      const res = ERP.confirmShipment(no, document.getElementById("m-carrier").value, document.getElementById("m-tracking").value.trim());
+      if (!res.ok) { const e = document.getElementById("ship-error"); e.textContent = res.msg; e.classList.remove("hidden"); return; }
+      closeModal("ship-modal");
+      toast(t(`${no} を出荷確定しました`, `${no} shipped`), "success");
+      search(page);
+    }
+
+    function deliver(no) {
+      if (!confirm(t(`${no} を配達完了にしますか？`, `Mark ${no} as delivered?`))) return;
+      const res = ERP.confirmDelivery(no);
+      if (!res.ok) return toast(res.msg, "error");
+      toast(t(`${no} を配達完了にしました`, `${no} delivered`), "success");
+      search(page);
+    }
+  </script>
+</body>
+</html>

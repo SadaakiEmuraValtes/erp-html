@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>受注一覧 | VALTES ERP Demo</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <script src="js/i18n.js"></script>
+  <script src="data/master.js"></script>
+  <script src="js/core.js"></script>
+  <script src="js/layout.js"></script>
+
+  <div id="page" class="hidden">
+    <h1 class="page-title" id="page-title"><span data-i18n-en="🧾 Sales Orders">🧾 受注一覧</span>
+      <span class="title-actions"><button class="btn btn-primary" id="btn-new-so" onclick="I18n.go('sales-order.html?mode=new')">＋ <span data-i18n-en="New Sales Order">受注登録</span></button></span></h1>
+
+    <form class="panel" id="search-form" onsubmit="event.preventDefault();search(1)">
+      <div class="panel-head" data-i18n-en="🔍 Search Conditions">🔍 検索条件</div>
+      <div class="panel-body">
+        <div class="search-grid">
+          <div class="form-group"><label for="s-no" data-i18n-en="SO No. (partial)">受注番号（部分一致）</label><input type="text" id="s-no" name="no" placeholder="SO-2026-"></div>
+          <div class="form-group"><label for="s-customer" data-i18n-en="Customer">得意先</label><select id="s-customer" name="customer"></select></div>
+          <div class="form-group"><label for="s-status" data-i18n-en="Status">状態</label><select id="s-status" name="status"></select></div>
+          <div class="form-group"><label for="s-warehouse" data-i18n-en="Warehouse">出荷倉庫</label><select id="s-warehouse" name="warehouse"></select></div>
+          <div class="form-group"><label for="s-dateFrom" data-i18n-en="Order date (from - to)">受注日（から〜まで）</label>
+            <div class="range"><input type="date" id="s-dateFrom" name="dateFrom"><span>〜</span><input type="date" id="s-dateTo" name="dateTo"></div></div>
+          <div class="form-group"><label for="s-productCode" data-i18n-en="Product code (partial)">品目コード（部分一致）</label><input type="text" id="s-productCode" name="productCode"></div>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" id="btn-clear" onclick="document.getElementById('search-form').reset();search(1)" data-i18n-en="Clear">クリア</button>
+          <button type="submit" class="btn btn-primary" id="btn-search" data-i18n-en="🔍 Search">🔍 検索</button>
+        </div>
+      </div>
+    </form>
+
+    <div class="toolbar" id="result-toolbar">
+      <span class="result-count" id="result-count"></span><span class="result-range" id="result-range"></span>
+      <div class="right"><span class="muted" id="sum-total"></span><div id="pager-top"></div></div>
+    </div>
+    <div id="results"></div>
+    <div class="pager-bottom" id="pager-bottom"></div>
+  </div>
+
+  <script>
+    const FIELDS = ["no", "customer", "status", "warehouse", "dateFrom", "dateTo", "productCode"];
+    const PAGE_SIZE = 20;
+    let rows = [], page = 1;
+
+    document.addEventListener("DOMContentLoaded", () => {
+      if (!buildPage({ title: t("受注一覧", "Sales Orders"), menu: "sales-orders", crumbs: [["販売管理", "Sales"], ["受注一覧", "Sales Orders"]] })) return;
+      const b = document.getElementById("btn-new-so");
+      if (!ERP.can("so_edit")) { b.disabled = true; b.title = t("この操作の権限がありません", "You do not have permission for this action"); }
+      const all = t("すべて", "All");
+      document.getElementById("s-customer").innerHTML = optionsHtml(OPTS.customer(), "", all);
+      document.getElementById("s-status").innerHTML = optionsHtml(["ordered", "instructed", "shipped", "delivered", "cancelled"].map(k => ({ value: k, label: ERP.label.soStatus(k) })), "", all);
+      document.getElementById("s-warehouse").innerHTML = optionsHtml(OPTS.warehouse(), "", all);
+      search(fillSearchForm(FIELDS));
+      showFlash();
+    });
+
+    function search(p) { rows = ERP.searchSalesOrders(readSearchForm(FIELDS)); page = p; render(); }
+    function goPage(p) { page = p; render(); }
+
+    function render() {
+      const sum = rows.filter(o => o.status !== "cancelled").reduce((s, o) => s + ERP.orderAmounts(o).total, 0);
+      const st = document.getElementById("sum-total");
+      st.textContent = t(`合計金額（キャンセル除く）：${yen(sum)}`, `Total (excl. cancelled): ${yen(sum)}`);
+      st.dataset.value = sum;
+      page = renderPaged(rows, page, PAGE_SIZE, slice => {
+        document.getElementById("results").innerHTML = tableHtml({ id: "so-table", rowPrefix: "so", rows: slice, rowKey: o => o.no,
+          emptyText: t("条件に一致する受注はありません。", "No sales orders found."), rowAttrs: o => `data-status="${o.status}"`, columns: [
+          { key: "no", label: ["受注番号", "SO No."], value: o => o.no, html: o => `<a href="${I18n.urlWith("sales-order.html?no=" + o.no)}" id="link-so-${o.no}">${o.no}</a>`, cls: "nowrap" },
+          { key: "orderDate", label: ["受注日", "Order date"], value: o => o.orderDate, html: o => dt(o.orderDate), cls: "nowrap" },
+          { key: "customer", label: ["得意先コード", "Customer"], value: o => o.customer, cls: "nowrap" },
+          { key: "customerName", label: ["得意先名", "Customer name"], value: o => ERP.partnerName(o.customer) },
+          { key: "warehouse", label: ["出荷倉庫", "Warehouse"], value: o => o.warehouse, html: o => `${o.warehouse} ${esc(ERP.label.warehouse(o.warehouse))}`, cls: "nowrap" },
+          { key: "requestedDate", label: ["希望納期", "Requested"], value: o => o.requestedDate, html: o => dt(o.requestedDate), cls: "nowrap" },
+          { key: "lineCount", label: ["明細数", "Lines"], value: o => o.lines.length, cls: "num" },
+          { key: "qty", label: ["数量計", "Qty"], value: o => ERP.orderAmounts(o).qty, html: o => num(ERP.orderAmounts(o).qty), cls: "num" },
+          { key: "subtotal", label: ["税抜金額", "Subtotal"], value: o => ERP.orderAmounts(o).subtotal, html: o => yen(ERP.orderAmounts(o).subtotal), cls: "num" },
+          { key: "total", label: ["税込金額", "Total"], value: o => ERP.orderAmounts(o).total, html: o => yen(ERP.orderAmounts(o).total), cls: "num" },
+          { key: "status", label: ["状態", "Status"], value: o => o.status, html: o => badge("soStatus", o.status) },
+          { key: "createdBy", label: ["登録者", "Created by"], value: o => o.createdBy, html: o => esc(ERP.userName(o.createdBy)), cls: "nowrap" },
+        ] });
+      }, "goPage");
+      writeSearchUrl(readSearchForm(FIELDS), page);
+    }
+  </script>
+</body>
+</html>

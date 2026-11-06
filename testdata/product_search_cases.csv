@@ -1,0 +1,36 @@
+case_id,description,url,code,name,category,subCategory,maker,supplier,unit,priceMin,priceMax,statuses,stockStatus,warehouse,taxType,lotControl,origin,regFrom,regTo,sort,expected_count,expected_pages_20,expected_first_code,expected_first_name,expected_first_unitPrice,expected_first_available,expected_first_stockStatus,expected_last_code,expected_sum_unitPrice
+PS-001,全件（条件なし）,products.html,,,,,,,,,,,,,,,,,,,312,16,P-00001,バルテス 標準テスト品,1000,583,in,P-10300,11147700
+PS-002,品目コード部分一致：テスト用品目,products.html?code=P-000,P-000,,,,,,,,,,,,,,,,,,12,1,P-00001,バルテス 標準テスト品,1000,583,in,P-00012,9820610
+PS-003,品目コード完全一致：高額品,products.html?code=P-00006,P-00006,,,,,,,,,,,,,,,,,,1,1,P-00006,高額品 精密測定ユニット,9800000,3,in,P-00006,9800000
+PS-004,品名部分一致（日本語）,products.html?name=%E3%83%9C%E3%83%AB%E3%83%88,,ボルト,,,,,,,,,,,,,,,,,5,1,P-10061,六角ボルト M3×10,2490,1136,in,P-10065,9330
+PS-005,品名部分一致（英語・大文字小文字区別なし）,products.html?name=bearing,,bearing,,,,,,,,,,,,,,,,,15,1,P-10076,深溝玉軸受 内径10mm,1970,593,in,P-10090,54870
+PS-006,品名：該当なし,products.html?name=%E5%AD%98%E5%9C%A8%E3%81%97%E3%81%AA%E3%81%84%E5%93%81%E5%90%8D,,存在しない品名,,,,,,,,,,,,,,,,,0,1,,,,,,,0
+PS-007,品名：記号を含む,products.html?name=A%26B,,A&B,,,,,,,,,,,,,,,,,1,1,P-00009,"記号テスト品 A&B <特殊> ""記号"" 'テスト'",450,600,in,P-00009,450
+PS-008,カテゴリ,products.html?category=ELC,,,ELC,,,,,,,,,,,,,,,,62,4,P-00002,在庫ゼロ品,2500,0,out,P-10060,86010
+PS-009,カテゴリ＋サブカテゴリ,products.html?category=MEC&subCategory=MEC-GER,,,MEC,MEC-GER,,,,,,,,,,,,,,,15,1,P-10091,平歯車 M1 20T,5300,1017,in,P-10105,84460
+PS-010,メーカー,products.html?maker=MK03,,,,,MK03,,,,,,,,,,,,,,39,2,P-00006,高額品 精密測定ユニット,9800000,3,in,P-10289,9999610
+PS-011,仕入先,products.html?supplier=S-001,,,,,,S-001,,,,,,,,,,,,,34,2,P-00001,バルテス 標準テスト品,1000,583,in,P-10289,9903180
+PS-012,単位,products.html?unit=roll,,,,,,,roll,,,,,,,,,,,,31,2,P-00009,"記号テスト品 A&B <特殊> ""記号"" 'テスト'",450,600,in,P-10255,58710
+PS-013,単価下限,products.html?priceMin=10000,,,,,,,,10000,,,,,,,,,,,24,2,P-00006,高額品 精密測定ユニット,9800000,3,in,P-10210,10382950
+PS-014,単価上限,products.html?priceMax=500,,,,,,,,,500,,,,,,,,,,26,2,P-00007,サンプル品（単価0円）,0,1500,in,P-10240,8140
+PS-015,単価範囲,products.html?priceMin=1000&priceMax=2000,,,,,,,,1000,2000,,,,,,,,,,49,3,P-00001,バルテス 標準テスト品,1000,583,in,P-10288,73940
+PS-016,単価範囲（境界値：同値）,products.html?priceMin=1000&priceMax=1000,,,,,,,,1000,1000,,,,,,,,,,2,1,P-00001,バルテス 標準テスト品,1000,583,in,P-10004,2000
+PS-017,ステータス：有効のみ,products.html?statuses=active,,,,,,,,,,active,,,,,,,,,274,14,P-00001,バルテス 標準テスト品,1000,583,in,P-10300,10964360
+PS-018,ステータス：販売停止＋廃番,products.html?statuses=suspended%2Cdiscontinued,,,,,,,,,,"suspended,discontinued",,,,,,,,,38,2,P-00004,販売停止品,800,120,in,P-10295,183340
+PS-019,在庫状態：在庫なし,products.html?stockStatus=out,,,,,,,,,,,out,,,,,,,,16,1,P-00002,在庫ゼロ品,2500,0,out,P-10297,56330
+PS-020,在庫状態：安全在庫割れ,products.html?stockStatus=low,,,,,,,,,,,low,,,,,,,,38,2,P-00003,安全在庫割れ品,1200,15,low,P-10298,97790
+PS-021,在庫のある倉庫：福岡,products.html?warehouse=WH03,,,,,,,,,,,,WH03,,,,,,,248,13,P-00001,バルテス 標準テスト品,1000,583,in,P-10300,1146400
+PS-022,課税区分：軽減8%,products.html?taxType=reduced,,,,,,,,,,,,,reduced,,,,,,17,1,P-00010,軽減税率テスト品,2160,294,in,P-10290,38190
+PS-023,課税区分：非課税,products.html?taxType=exempt,,,,,,,,,,,,,exempt,,,,,,17,1,P-00011,非課税テスト品,3000,280,in,P-10288,77890
+PS-024,ロット管理あり,products.html?lotControl=yes,,,,,,,,,,,,,,yes,,,,,89,5,P-00012,ロット管理品 東京在庫のみ,1500,250,in,P-10300,275560
+PS-025,ロット管理なし×電子部品,products.html?lotControl=no&category=ELC,,,ELC,,,,,,,,,,,no,,,,,24,2,P-00002,在庫ゼロ品,2500,0,out,P-10059,37900
+PS-026,原産国：ドイツ,products.html?origin=DE,,,,,,,,,,,,,,,DE,,,,32,2,P-00006,高額品 精密測定ユニット,9800000,3,in,P-10298,9916220
+PS-027,登録日：2026/01/01以降,products.html?regFrom=2026-01-01,,,,,,,,,,,,,,,,2026-01-01,,,57,3,P-10014,チップ抵抗 10kΩ,1120,742,in,P-10299,244900
+PS-028,登録日：範囲指定,products.html?regFrom=2023-04-01&regTo=2023-09-30,,,,,,,,,,,,,,,,2023-04-01,2023-09-30,,31,2,P-10002,炭素皮膜抵抗 1kΩ,410,763,in,P-10300,148760
+PS-029,並び順：単価が高い順（工具）,products.html?category=TLS&sort=price_desc,,,TLS,,,,,,,,,,,,,,,price_desc,47,3,P-00006,高額品 精密測定ユニット,9800000,3,in,P-10192,10482410
+PS-030,並び順：有効在庫が少ない順（有効品）,products.html?statuses=active&sort=stock_asc,,,,,,,,,,active,,,,,,,,stock_asc,274,14,P-00002,在庫ゼロ品,2500,0,out,P-10138,10964360
+PS-031,並び順：登録日が新しい順,products.html?sort=reg_desc,,,,,,,,,,,,,,,,,,reg_desc,312,16,P-10255,紙緩衝材 大巻,4470,35,low,P-00005,11147700
+PS-032,複合：事務用品×標準税率×有効×在庫あり×単価安い順,products.html?category=OFS&taxType=standard&statuses=active&stockStatus=in&sort=price_asc,,,OFS,,,,,,,active,in,,standard,,,,,price_asc,29,2,P-00007,サンプル品（単価0円）,0,1500,in,P-10148,89950
+PS-033,複合：安全用品×メーカーMK02×単価3000以下×品名順,products.html?category=SFT&maker=MK02&priceMax=3000&sort=name_asc,,,SFT,,MK02,,,,3000,,,,,,,,,name_asc,4,1,P-10295,ゴーグル 二眼型,960,988,in,P-10270,6270
+PS-034,複合：東京在庫あり×ロット管理×中国産,products.html?warehouse=WH01&lotControl=yes&origin=CN,,,,,,,,,,,,WH01,,yes,CN,,,,4,1,P-10006,金属皮膜抵抗 100Ω,770,995,in,P-10291,5290
+PS-035,複合：該当なし（単価範囲×カテゴリ）,products.html?category=OFS&priceMin=9000000,,,OFS,,,,,9000000,,,,,,,,,,,0,1,,,,,,,0

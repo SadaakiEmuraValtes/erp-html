@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>受注 | VALTES ERP Demo</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <script src="js/i18n.js"></script>
+  <script src="data/master.js"></script>
+  <script src="js/core.js"></script>
+  <script src="js/layout.js"></script>
+  <script src="js/order-form.js"></script>
+
+  <div id="page" class="hidden"></div>
+
+  <script>
+    // ?no=SO-2026-00001 → 詳細 / ?mode=new → 受注登録
+    document.addEventListener("DOMContentLoaded", () => {
+      const isNew = qp("mode") === "new";
+      const title = isNew ? t("受注登録", "New Sales Order") : t("受注詳細", "Sales Order Details");
+      if (!buildPage({ title, menu: isNew ? "sales-order-new" : "sales-orders",
+        crumbs: [["販売管理", "Sales"], ["受注一覧", "Sales Orders", "sales-orders.html"], [title, title]] })) return;
+      if (isNew) {
+        if (!ERP.can("so_edit")) return noPerm();
+        renderOrderForm("so");
+      } else renderDetail();
+      showFlash();
+    });
+
+    function noPerm() {
+      document.getElementById("page").innerHTML = `<div class="alert alert-danger" id="no-permission">${t("受注を登録する権限がありません。", "You do not have permission to create sales orders.")}</div>
+        <a class="btn btn-secondary" id="btn-back" href="${I18n.urlWith("sales-orders.html")}">${t("← 一覧へ戻る", "← Back to list")}</a>`;
+    }
+
+    function renderDetail() {
+      const o = ERP.salesOrder(qp("no"));
+      const page = document.getElementById("page");
+      if (!o) {
+        page.innerHTML = `<div class="alert alert-danger" id="not-found">${t(`受注番号 ${esc(qp("no") || "")} は存在しません。`, `Sales order ${esc(qp("no") || "")} not found.`)}</div>
+          <a class="btn btn-secondary" id="btn-back" href="${I18n.urlWith("sales-orders.html")}">${t("← 一覧へ戻る", "← Back to list")}</a>`;
+        return;
+      }
+      const c = ERP.partner(o.customer);
+      const sh = ERP.shipments().filter(s => s.salesOrderNo === o.no);
+      page.innerHTML = `
+        <h1 class="page-title" id="page-title">🧾 <span id="title-no" class="mono">${o.no}</span> ${badge("soStatus", o.status)}
+          <span class="title-actions">
+            <button class="btn btn-primary" id="btn-instruct" ${permAttr("so_edit")} ${o.status === "ordered" ? "" : "disabled"} onclick="instruct()">🚚 ${t("出荷指示", "Instruct shipment")}</button>
+            <button class="btn btn-danger" id="btn-cancel-so" ${permAttr("so_edit")} ${["ordered", "instructed"].includes(o.status) ? "" : "disabled"} onclick="cancelSo()">${t("受注キャンセル", "Cancel order")}</button>
+            <a class="btn btn-secondary" id="btn-back" href="${I18n.urlWith("sales-orders.html")}">${t("← 一覧へ", "← List")}</a>
+          </span></h1>
+        ${orderDetailHtml("so", o, [
+          ["no", t("受注番号", "SO No."), o.no],
+          ["status", t("状態", "Status"), o.status, badge("soStatus", o.status)],
+          ["orderDate", t("受注日", "Order date"), o.orderDate, dt(o.orderDate)],
+          ["customer", t("得意先", "Customer"), o.customer, `${o.customer} ${esc(ERP.partnerName(o.customer))}`],
+          ["payTerm", t("支払条件", "Payment terms"), c.payTerm, esc(ERP.label.payTerm(c.payTerm))],
+          ["warehouse", t("出荷倉庫", "Warehouse"), o.warehouse, `${o.warehouse} ${esc(ERP.label.warehouse(o.warehouse))}`],
+          ["requestedDate", t("希望納期", "Requested date"), o.requestedDate, dt(o.requestedDate)],
+          ["customerRef", t("客先注文番号", "Customer PO No."), o.customerRef || "", esc(o.customerRef) || "-"],
+          ["createdBy", t("登録者", "Created by"), o.createdBy, esc(ERP.userName(o.createdBy))],
+          ["note", t("備考", "Note"), o.note || "", esc(o.note) || "-"],
+        ])}
+        <div class="panel"><div class="panel-head">${t("配送", "Shipments")}</div>
+          ${tableHtml({ id: "so-shipment-table", rowPrefix: "shipment", rows: sh, rowKey: s => s.no, emptyText: t("出荷指示はまだありません。", "No shipment instruction yet."), columns: [
+            { key: "no", label: ["配送番号", "Shipment No."], value: s => s.no, html: s => `<a href="${I18n.urlWith("shipments.html?no=" + s.no)}">${s.no}</a>`, cls: "nowrap" },
+            { key: "plannedDate", label: ["出荷予定日", "Planned"], value: s => s.plannedDate, html: s => dt(s.plannedDate) },
+            { key: "carrier", label: ["配送業者", "Carrier"], value: s => s.carrier, html: s => esc(ERP.label.carrier(s.carrier)) || "-" },
+            { key: "trackingNo", label: ["送り状番号", "Tracking No."], value: s => s.trackingNo, html: s => esc(s.trackingNo) || "-", cls: "mono" },
+            { key: "status", label: ["状態", "Status"], value: s => s.status, html: s => badge("shStatus", s.status) },
+          ] })}</div>`;
+    }
+
+    function instruct() {
+      const no = qp("no");
+      if (!confirm(t(`受注 ${no} の出荷指示を行いますか？`, `Instruct shipment for ${no}?`))) return;
+      const res = ERP.instructShipment(no);
+      if (!res.ok) return toast(res.msg, "error");
+      setFlash(t(`出荷指示を行いました（配送番号 ${res.shipment.no}）。`, `Shipment instructed (${res.shipment.no}).`));
+      location.reload();
+    }
+
+    function cancelSo() {
+      const no = qp("no");
+      if (!confirm(t(`受注 ${no} をキャンセルしますか？\n引当済みの在庫は解放されます。`, `Cancel sales order ${no}?\nAllocated stock will be released.`))) return;
+      const res = ERP.cancelSalesOrder(no);
+      if (!res.ok) return toast(res.msg, "error");
+      setFlash(t(`受注 ${no} をキャンセルしました。`, `Sales order ${no} has been cancelled.`));
+      location.reload();
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>発注 | VALTES ERP Demo</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <script src="js/i18n.js"></script>
+  <script src="data/master.js"></script>
+  <script src="js/core.js"></script>
+  <script src="js/layout.js"></script>
+  <script src="js/order-form.js"></script>
+
+  <div id="page" class="hidden"></div>
+
+  <script>
+    // ?no=PO-2026-00001 → 詳細 / ?mode=new → 発注登録
+    document.addEventListener("DOMContentLoaded", () => {
+      const isNew = qp("mode") === "new";
+      const title = isNew ? t("発注登録", "New Purchase Order") : t("発注詳細", "Purchase Order Details");
+      if (!buildPage({ title, menu: isNew ? "purchase-order-new" : "purchase-orders",
+        crumbs: [["購買管理", "Purchasing"], ["発注一覧", "Purchase Orders", "purchase-orders.html"], [title, title]] })) return;
+      if (isNew) {
+        if (!ERP.can("po_edit")) {
+          document.getElementById("page").innerHTML = `<div class="alert alert-danger" id="no-permission">${t("発注を登録する権限がありません。", "You do not have permission to create purchase orders.")}</div>
+            <a class="btn btn-secondary" id="btn-back" href="${I18n.urlWith("purchase-orders.html")}">${t("← 一覧へ戻る", "← Back to list")}</a>`;
+          return;
+        }
+        renderOrderForm("po");
+      } else renderDetail();
+      showFlash();
+    });
+
+    function renderDetail() {
+      const o = ERP.purchaseOrder(qp("no"));
+      const page = document.getElementById("page");
+      if (!o) {
+        page.innerHTML = `<div class="alert alert-danger" id="not-found">${t(`発注番号 ${esc(qp("no") || "")} は存在しません。`, `Purchase order ${esc(qp("no") || "")} not found.`)}</div>
+          <a class="btn btn-secondary" id="btn-back" href="${I18n.urlWith("purchase-orders.html")}">${t("← 一覧へ戻る", "← Back to list")}</a>`;
+        return;
+      }
+      const s = ERP.partner(o.supplier);
+      page.innerHTML = `
+        <h1 class="page-title" id="page-title">📦 <span id="title-no" class="mono">${o.no}</span> ${badge("poStatus", o.status)}
+          <span class="title-actions">
+            <button class="btn btn-ok" id="btn-receive" ${permAttr("po_receive")} ${o.status === "ordered" ? "" : "disabled"} onclick="receive()">📥 ${t("入荷処理", "Receive goods")}</button>
+            <button class="btn btn-danger" id="btn-cancel-po" ${permAttr("po_edit")} ${o.status === "ordered" ? "" : "disabled"} onclick="cancelPo()">${t("発注キャンセル", "Cancel order")}</button>
+            <a class="btn btn-secondary" id="btn-back" href="${I18n.urlWith("purchase-orders.html")}">${t("← 一覧へ", "← List")}</a>
+          </span></h1>
+        ${orderDetailHtml("po", o, [
+          ["no", t("発注番号", "PO No."), o.no],
+          ["status", t("状態", "Status"), o.status, badge("poStatus", o.status)],
+          ["orderDate", t("発注日", "Order date"), o.orderDate, dt(o.orderDate)],
+          ["supplier", t("仕入先", "Supplier"), o.supplier, `${o.supplier} ${esc(ERP.partnerName(o.supplier))}`],
+          ["payTerm", t("支払条件", "Payment terms"), s.payTerm, esc(ERP.label.payTerm(s.payTerm))],
+          ["warehouse", t("入荷倉庫", "Warehouse"), o.warehouse, `${o.warehouse} ${esc(ERP.label.warehouse(o.warehouse))}`],
+          ["expectedDate", t("入荷予定日", "Expected date"), o.expectedDate, dt(o.expectedDate)],
+          ["receivedDate", t("入荷日", "Received date"), o.receivedDate || "", o.receivedDate ? dt(o.receivedDate) : "-"],
+          ["createdBy", t("登録者", "Created by"), o.createdBy, esc(ERP.userName(o.createdBy))],
+          ["note", t("備考", "Note"), o.note || "", esc(o.note) || "-"],
+        ])}`;
+    }
+
+    function receive() {
+      const no = qp("no");
+      if (!confirm(t(`発注 ${no} の入荷処理を行いますか？\n明細の数量が在庫に加算されます。`, `Receive goods for ${no}?\nLine quantities will be added to stock.`))) return;
+      const res = ERP.receivePurchaseOrder(no);
+      if (!res.ok) return toast(res.msg, "error");
+      setFlash(t(`発注 ${no} の入荷処理を行いました。`, `Goods received for ${no}.`));
+      location.reload();
+    }
+
+    function cancelPo() {
+      const no = qp("no");
+      if (!confirm(t(`発注 ${no} をキャンセルしますか？`, `Cancel purchase order ${no}?`))) return;
+      const res = ERP.cancelPurchaseOrder(no);
+      if (!res.ok) return toast(res.msg, "error");
+      setFlash(t(`発注 ${no} をキャンセルしました。`, `Purchase order ${no} has been cancelled.`));
+      location.reload();
+    }
+  </script>
+</body>
+</html>

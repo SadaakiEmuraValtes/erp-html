@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>ログイン | VALTES ERP Demo</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <script src="js/i18n.js"></script>
+  <script src="data/master.js"></script>
+  <script src="js/core.js"></script>
+  <script src="js/layout.js"></script>
+
+  <div id="page" class="hidden">
+    <div class="login-box">
+      <div class="panel">
+        <div class="panel-head" data-i18n-en="🔐 Log In">🔐 ログイン</div>
+        <div class="panel-body">
+          <form id="login-form" onsubmit="doLogin(event)">
+            <div class="form-group" id="g-login-id" style="margin-bottom:12px">
+              <label for="login-id" data-i18n-en="User ID">ユーザーID</label>
+              <input type="text" id="login-id" name="userId" autocomplete="username">
+            </div>
+            <div class="form-group" id="g-login-password" style="margin-bottom:12px">
+              <label for="login-password" data-i18n-en="Password">パスワード</label>
+              <input type="password" id="login-password" name="password" autocomplete="current-password">
+            </div>
+            <div id="login-error" class="alert alert-danger hidden" role="alert"></div>
+            <button type="submit" id="btn-login" class="btn btn-primary" style="width:100%;justify-content:center" data-i18n-en="Log In">ログイン</button>
+          </form>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-head" data-i18n-en="🧪 Test Accounts">🧪 テストアカウント</div>
+        <div class="panel-body" style="padding:0">
+          <table class="data-table account-table" id="account-table">
+            <thead><tr><th data-col="id" data-i18n-en="User ID">ユーザーID</th><th data-col="password" data-i18n-en="Password">パスワード</th><th data-col="role" data-i18n-en="Role">ロール</th><th></th></tr></thead>
+            <tbody id="account-list"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      if (!buildPage({ title: t("ログイン", "Log In"), requireLogin: false })) return;
+      if (ERP.currentUser()) { goNext(); return; }
+      document.getElementById("account-list").innerHTML = USERS.map(u => `
+        <tr id="account-${u.id}" data-key="${u.id}">
+          <td data-col="id" class="mono">${u.id}</td>
+          <td data-col="password" class="mono">${esc(u.password)}</td>
+          <td data-col="role" data-value="${u.role}">${ERP.roleName(u.role)}</td>
+          <td><button type="button" class="btn btn-secondary btn-sm" id="fill-${u.id}" onclick="fill('${u.id}')">${t("入力", "Fill")}</button></td>
+        </tr>`).join("");
+      document.getElementById("login-id").focus();
+    });
+
+    function fill(id) {
+      const u = USERS.find(x => x.id === id);
+      document.getElementById("login-id").value = u.id;
+      document.getElementById("login-password").value = u.password;
+    }
+
+    function doLogin(e) {
+      e.preventDefault();
+      const id = document.getElementById("login-id").value.trim(), pw = document.getElementById("login-password").value;
+      const err = document.getElementById("login-error");
+      if (!id || !pw) { err.textContent = t("ユーザーIDとパスワードを入力してください。", "Enter your user ID and password."); err.classList.remove("hidden"); return; }
+      const res = ERP.login(id, pw);
+      if (!res.ok) { err.textContent = res.msg; err.classList.remove("hidden"); return; }
+      goNext();
+    }
+
+    function goNext() {
+      const next = qp("next");
+      // 外部URLへのリダイレクトは許可しない
+      I18n.go(next && /^[\w-]+\.html(\?[^:]*)?$/.test(next) ? next : "index.html");
+    }
+  </script>
+</body>
+</html>
