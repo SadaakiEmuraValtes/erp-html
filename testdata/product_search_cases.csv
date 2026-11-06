@@ -1,36 +1,42 @@
-case_id,description,url,code,name,category,subCategory,maker,supplier,unit,priceMin,priceMax,statuses,stockStatus,warehouse,taxType,lotControl,origin,regFrom,regTo,sort,expected_count,expected_pages_20,expected_first_code,expected_first_name,expected_first_unitPrice,expected_first_available,expected_first_stockStatus,expected_last_code,expected_sum_unitPrice
-PS-001,全件（条件なし）,products.html,,,,,,,,,,,,,,,,,,,312,16,P-00001,バルテス 標準テスト品,1000,583,in,P-10300,11147700
-PS-002,品目コード部分一致：テスト用品目,products.html?code=P-000,P-000,,,,,,,,,,,,,,,,,,12,1,P-00001,バルテス 標準テスト品,1000,583,in,P-00012,9820610
-PS-003,品目コード完全一致：高額品,products.html?code=P-00006,P-00006,,,,,,,,,,,,,,,,,,1,1,P-00006,高額品 精密測定ユニット,9800000,3,in,P-00006,9800000
-PS-004,品名部分一致（日本語）,products.html?name=%E3%83%9C%E3%83%AB%E3%83%88,,ボルト,,,,,,,,,,,,,,,,,5,1,P-10061,六角ボルト M3×10,2490,1136,in,P-10065,9330
-PS-005,品名部分一致（英語・大文字小文字区別なし）,products.html?name=bearing,,bearing,,,,,,,,,,,,,,,,,15,1,P-10076,深溝玉軸受 内径10mm,1970,593,in,P-10090,54870
-PS-006,品名：該当なし,products.html?name=%E5%AD%98%E5%9C%A8%E3%81%97%E3%81%AA%E3%81%84%E5%93%81%E5%90%8D,,存在しない品名,,,,,,,,,,,,,,,,,0,1,,,,,,,0
-PS-007,品名：記号を含む,products.html?name=A%26B,,A&B,,,,,,,,,,,,,,,,,1,1,P-00009,"記号テスト品 A&B <特殊> ""記号"" 'テスト'",450,600,in,P-00009,450
-PS-008,カテゴリ,products.html?category=ELC,,,ELC,,,,,,,,,,,,,,,,62,4,P-00002,在庫ゼロ品,2500,0,out,P-10060,86010
-PS-009,カテゴリ＋サブカテゴリ,products.html?category=MEC&subCategory=MEC-GER,,,MEC,MEC-GER,,,,,,,,,,,,,,,15,1,P-10091,平歯車 M1 20T,5300,1017,in,P-10105,84460
-PS-010,メーカー,products.html?maker=MK03,,,,,MK03,,,,,,,,,,,,,,39,2,P-00006,高額品 精密測定ユニット,9800000,3,in,P-10289,9999610
-PS-011,仕入先,products.html?supplier=S-001,,,,,,S-001,,,,,,,,,,,,,34,2,P-00001,バルテス 標準テスト品,1000,583,in,P-10289,9903180
-PS-012,単位,products.html?unit=roll,,,,,,,roll,,,,,,,,,,,,31,2,P-00009,"記号テスト品 A&B <特殊> ""記号"" 'テスト'",450,600,in,P-10255,58710
-PS-013,単価下限,products.html?priceMin=10000,,,,,,,,10000,,,,,,,,,,,24,2,P-00006,高額品 精密測定ユニット,9800000,3,in,P-10210,10382950
-PS-014,単価上限,products.html?priceMax=500,,,,,,,,,500,,,,,,,,,,26,2,P-00007,サンプル品（単価0円）,0,1500,in,P-10240,8140
-PS-015,単価範囲,products.html?priceMin=1000&priceMax=2000,,,,,,,,1000,2000,,,,,,,,,,49,3,P-00001,バルテス 標準テスト品,1000,583,in,P-10288,73940
-PS-016,単価範囲（境界値：同値）,products.html?priceMin=1000&priceMax=1000,,,,,,,,1000,1000,,,,,,,,,,2,1,P-00001,バルテス 標準テスト品,1000,583,in,P-10004,2000
-PS-017,ステータス：有効のみ,products.html?statuses=active,,,,,,,,,,active,,,,,,,,,274,14,P-00001,バルテス 標準テスト品,1000,583,in,P-10300,10964360
-PS-018,ステータス：販売停止＋廃番,products.html?statuses=suspended%2Cdiscontinued,,,,,,,,,,"suspended,discontinued",,,,,,,,,38,2,P-00004,販売停止品,800,120,in,P-10295,183340
-PS-019,在庫状態：在庫なし,products.html?stockStatus=out,,,,,,,,,,,out,,,,,,,,16,1,P-00002,在庫ゼロ品,2500,0,out,P-10297,56330
-PS-020,在庫状態：安全在庫割れ,products.html?stockStatus=low,,,,,,,,,,,low,,,,,,,,38,2,P-00003,安全在庫割れ品,1200,15,low,P-10298,97790
-PS-021,在庫のある倉庫：福岡,products.html?warehouse=WH03,,,,,,,,,,,,WH03,,,,,,,248,13,P-00001,バルテス 標準テスト品,1000,583,in,P-10300,1146400
-PS-022,課税区分：軽減8%,products.html?taxType=reduced,,,,,,,,,,,,,reduced,,,,,,17,1,P-00010,軽減税率テスト品,2160,294,in,P-10290,38190
-PS-023,課税区分：非課税,products.html?taxType=exempt,,,,,,,,,,,,,exempt,,,,,,17,1,P-00011,非課税テスト品,3000,280,in,P-10288,77890
-PS-024,ロット管理あり,products.html?lotControl=yes,,,,,,,,,,,,,,yes,,,,,89,5,P-00012,ロット管理品 東京在庫のみ,1500,250,in,P-10300,275560
-PS-025,ロット管理なし×電子部品,products.html?lotControl=no&category=ELC,,,ELC,,,,,,,,,,,no,,,,,24,2,P-00002,在庫ゼロ品,2500,0,out,P-10059,37900
-PS-026,原産国：ドイツ,products.html?origin=DE,,,,,,,,,,,,,,,DE,,,,32,2,P-00006,高額品 精密測定ユニット,9800000,3,in,P-10298,9916220
-PS-027,登録日：2026/01/01以降,products.html?regFrom=2026-01-01,,,,,,,,,,,,,,,,2026-01-01,,,57,3,P-10014,チップ抵抗 10kΩ,1120,742,in,P-10299,244900
-PS-028,登録日：範囲指定,products.html?regFrom=2023-04-01&regTo=2023-09-30,,,,,,,,,,,,,,,,2023-04-01,2023-09-30,,31,2,P-10002,炭素皮膜抵抗 1kΩ,410,763,in,P-10300,148760
-PS-029,並び順：単価が高い順（工具）,products.html?category=TLS&sort=price_desc,,,TLS,,,,,,,,,,,,,,,price_desc,47,3,P-00006,高額品 精密測定ユニット,9800000,3,in,P-10192,10482410
-PS-030,並び順：有効在庫が少ない順（有効品）,products.html?statuses=active&sort=stock_asc,,,,,,,,,,active,,,,,,,,stock_asc,274,14,P-00002,在庫ゼロ品,2500,0,out,P-10138,10964360
-PS-031,並び順：登録日が新しい順,products.html?sort=reg_desc,,,,,,,,,,,,,,,,,,reg_desc,312,16,P-10255,紙緩衝材 大巻,4470,35,low,P-00005,11147700
-PS-032,複合：事務用品×標準税率×有効×在庫あり×単価安い順,products.html?category=OFS&taxType=standard&statuses=active&stockStatus=in&sort=price_asc,,,OFS,,,,,,,active,in,,standard,,,,,price_asc,29,2,P-00007,サンプル品（単価0円）,0,1500,in,P-10148,89950
-PS-033,複合：安全用品×メーカーMK02×単価3000以下×品名順,products.html?category=SFT&maker=MK02&priceMax=3000&sort=name_asc,,,SFT,,MK02,,,,3000,,,,,,,,,name_asc,4,1,P-10295,ゴーグル 二眼型,960,988,in,P-10270,6270
-PS-034,複合：東京在庫あり×ロット管理×中国産,products.html?warehouse=WH01&lotControl=yes&origin=CN,,,,,,,,,,,,WH01,,yes,CN,,,,4,1,P-10006,金属皮膜抵抗 100Ω,770,995,in,P-10291,5290
-PS-035,複合：該当なし（単価範囲×カテゴリ）,products.html?category=OFS&priceMin=9000000,,,OFS,,,,,9000000,,,,,,,,,,,0,1,,,,,,,0
+case_id,description,url,keyword,code,category,maker,subCategory,storages,colors,priceMin,priceMax,statuses,stockStatus,warehouse,regFrom,regTo,sort,expected_count,expected_pages_20,expected_first_code,expected_first_name,expected_first_unitPrice,expected_first_available,expected_first_stockStatus,expected_last_code,expected_sum_unitPrice
+PS-001,全件（条件なし）,products.html,,,,,,,,,,,,,,,,268,14,P-00001,バルテス 標準テスト品,1000,595,in,P-10256,31417410
+PS-002,品目コード部分一致：テスト用品目,products.html?code=P-000,,P-000,,,,,,,,,,,,,,12,1,P-00001,バルテス 標準テスト品,1000,595,in,P-00012,9820610
+PS-003,品目コード完全一致：高額品,products.html?code=P-00006,,P-00006,,,,,,,,,,,,,,1,1,P-00006,高額品 法人向けタブレット100台セット,9800000,3,in,P-00006,9800000
+PS-004,キーワード：シリーズ名（日本語）,products.html?keyword=V%E3%83%95%E3%82%A9%E3%83%B3,Vフォン,,,,,,,,,,,,,,,33,2,P-00001,バルテス 標準テスト品,1000,595,in,P-10032,2754600
+PS-005,キーワード：英名（大文字小文字区別なし）,products.html?keyword=leafpad,leafpad,,,,,,,,,,,,,,,33,2,P-00010,軽減税率テスト品,2160,300,in,P-10192,2355760
+PS-006,キーワード：全角英数（全角半角を区別しない）,products.html?keyword=%EF%BC%B3%EF%BC%B4%EF%BC%A5%EF%BC%AC%EF%BC%AC%EF%BC%A1,ＳＴＥＬＬＡ,,,,,,,,,,,,,,,67,4,P-00004,販売停止品,800,120,in,P-10224,6124000
+PS-007,キーワード：複数語AND（シリーズ＋容量＋カラー）,products.html?keyword=V%E3%83%95%E3%82%A9%E3%83%B3+128GB+%E3%83%96%E3%83%A9%E3%83%83%E3%82%AF,Vフォン 128GB ブラック,,,,,,,,,,,,,,,3,1,P-00001,バルテス 標準テスト品,1000,595,in,P-10021,150600
+PS-008,キーワード：複数語AND（ブランド名＋カラー英名）,products.html?keyword=%E3%83%84%E3%83%90%E3%82%B5+pink,ツバサ pink,,,,,,,,,,,,,,,16,1,P-10100,ウイング One 64GB ピンク,79800,245,in,P-10256,1056800
+PS-009,キーワード：該当なし,products.html?keyword=%E5%AD%98%E5%9C%A8%E3%81%97%E3%81%AA%E3%81%84%E5%93%81%E5%90%8D,存在しない品名,,,,,,,,,,,,,,,0,1,,,,,,,0
+PS-010,キーワード：記号を含む,products.html?keyword=A%26B,A&B,,,,,,,,,,,,,,,1,1,P-00009,"記号テスト品 A&B <特殊> ""記号"" 'テスト'",450,600,in,P-00009,450
+PS-011,カテゴリ：スマートフォン,products.html?category=SPH,,,SPH,,,,,,,,,,,,,135,7,P-00001,バルテス 標準テスト品,1000,595,in,P-10128,11504150
+PS-012,カテゴリ：タブレット,products.html?category=TAB,,,TAB,,,,,,,,,,,,,133,7,P-00002,在庫ゼロ品,2500,0,out,P-10256,19913260
+PS-013,ブランド,products.html?maker=MK03,,,,MK03,,,,,,,,,,,,67,4,P-00004,販売停止品,800,120,in,P-10224,6124000
+PS-014,カテゴリ＋ブランド,products.html?category=TAB&maker=MK02,,,TAB,MK02,,,,,,,,,,,,33,2,P-00010,軽減税率テスト品,2160,300,in,P-10192,2355760
+PS-015,シリーズ,products.html?subCategory=SPH-STU,,,,,SPH-STU,,,,,,,,,,,17,1,P-00008,【長い品名テスト】超高耐久防水防塵ハイエンドフラッグシップ折りたたみ式スマートフォン大容量バッテリー搭載モデル（法人向け・保護ケース・強化ガラスフィルム同梱）,4800,180,in,P-10080,2421600
+PS-016,ストレージ：単一,products.html?storages=512,,,,,,512,,,,,,,,,,65,4,P-00006,高額品 法人向けタブレット100台セット,9800000,3,in,P-10256,17039200
+PS-017,ストレージ：複数（OR）,products.html?storages=128%2C256,,,,,,"128,256",,,,,,,,,,134,7,P-00001,バルテス 標準テスト品,1000,595,in,P-10252,10329510
+PS-018,カラー：単一,products.html?colors=PK,,,,,,,PK,,,,,,,,,66,4,P-00004,販売停止品,800,120,in,P-10256,5402160
+PS-019,カラー：複数（OR）,products.html?colors=BK%2CWH,,,,,,,"BK,WH",,,,,,,,,135,7,P-00001,バルテス 標準テスト品,1000,595,in,P-10254,20610350
+PS-020,単価下限,products.html?priceMin=100000,,,,,,,,100000,,,,,,,,81,5,P-00006,高額品 法人向けタブレット100台セット,9800000,3,in,P-10240,20384000
+PS-021,単価上限,products.html?priceMax=40000,,,,,,,,,40000,,,,,,,51,3,P-00001,バルテス 標準テスト品,1000,595,in,P-10248,1324610
+PS-022,単価範囲,products.html?priceMin=50000&priceMax=80000,,,,,,,,50000,80000,,,,,,,64,4,P-10025,Vフォン Lite 256GB ブラック,64800,193,in,P-10256,4319200
+PS-023,単価範囲（境界値：同値）,products.html?priceMin=89800&priceMax=89800,,,,,,,,89800,89800,,,,,,,20,1,P-10001,Vフォン 15 64GB ブラック,89800,430,in,P-10192,1796000
+PS-024,ステータス：有効のみ,products.html?statuses=active,,,,,,,,,,active,,,,,,202,11,P-00001,バルテス 標準テスト品,1000,595,in,P-10256,26014210
+PS-025,ステータス：販売停止＋廃番,products.html?statuses=suspended%2Cdiscontinued,,,,,,,,,,"suspended,discontinued",,,,,,66,4,P-00004,販売停止品,800,120,in,P-10255,5403200
+PS-026,在庫状態：在庫なし,products.html?stockStatus=out,,,,,,,,,,,out,,,,,36,2,P-00002,在庫ゼロ品,2500,0,out,P-10251,3121500
+PS-027,在庫状態：安全在庫割れ,products.html?stockStatus=low,,,,,,,,,,,low,,,,,36,2,P-00003,安全在庫割れ品,1200,15,low,P-10250,2691600
+PS-028,在庫のある倉庫：福岡,products.html?warehouse=WH03,,,,,,,,,,,,WH03,,,,205,11,P-00001,バルテス 標準テスト品,1000,595,in,P-10256,16762610
+PS-029,発売日：2026/01/01以降,products.html?regFrom=2026-01-01,,,,,,,,,,,,,2026-01-01,,,64,4,P-10033,リーフ X 64GB ブラック,99800,90,in,P-10208,7267200
+PS-030,発売日：範囲指定,products.html?regFrom=2024-01-01&regTo=2024-12-31,,,,,,,,,,,,,2024-01-01,2024-12-31,,75,4,P-00001,バルテス 標準テスト品,1000,595,in,P-10224,13932610
+PS-031,並び順：単価が高い順（タブレット）,products.html?category=TAB&sort=price_desc,,,TAB,,,,,,,,,,,,price_desc,133,7,P-00006,高額品 法人向けタブレット100台セット,9800000,3,in,P-00010,19913260
+PS-032,並び順：有効在庫が少ない順（有効品）,products.html?statuses=active&sort=stock_asc,,,,,,,,,,active,,,,,stock_asc,202,11,P-00002,在庫ゼロ品,2500,0,out,P-00007,26014210
+PS-033,並び順：発売日が新しい順,products.html?sort=reg_desc,,,,,,,,,,,,,,,reg_desc,268,14,P-10193,ステラタブ 13 64GB ブラック,99800,290,in,P-00005,31417410
+PS-034,複合：スマホ×ブランド×容量×カラー,products.html?category=SPH&maker=MK01&storages=256&colors=BL,,,SPH,MK01,,256,BL,,,,,,,,,2,1,P-10011,Vフォン 15 256GB ブルー,114800,417,in,P-10027,179600
+PS-035,複合：タブレット×容量複数×カラー複数×有効,products.html?category=TAB&storages=64%2C128&colors=WH%2CPK&statuses=active,,,TAB,,,"64,128","WH,PK",,,active,,,,,,26,2,P-00002,在庫ゼロ品,2500,0,out,P-10246,1408860
+PS-036,複合：在庫なし×東京に現在庫あり（全数引当済み）,products.html?stockStatus=out&warehouse=WH01,,,,,,,,,,,out,WH01,,,,1,1,P-10016,Vフォン 15 512GB ピンク,139800,0,out,P-10016,139800
+PS-037,複合：スマホ×単価10万以下×在庫あり×大阪在庫×安い順,products.html?category=SPH&priceMax=100000&stockStatus=in&warehouse=WH02&sort=price_asc,,,SPH,,,,,,100000,,in,WH02,,,price_asc,56,3,P-00007,サンプル品（単価0円）,0,1500,in,P-10064,3380850
+PS-038,複合：キーワード×シリーズ×販売停止＋廃番,products.html?keyword=lite&subCategory=TAB-STL&statuses=suspended%2Cdiscontinued,lite,,,,TAB-STL,,,,,"suspended,discontinued",,,,,,5,1,P-00005,廃番品,3200,15,low,P-10224,219400
+PS-039,複合：ブランド×容量×安全在庫割れ,products.html?maker=MK04&storages=512&stockStatus=low,,,,MK04,,512,,,,,low,,,,,2,1,P-10109,ウイング One 512GB ブラック,129800,8,low,P-10237,234600
+PS-040,複合：カテゴリ×ブランド×シリーズ×容量×カラー×ステータス×発売日,products.html?category=TAB&maker=MK03&subCategory=TAB-ST13&storages=128%2C512&colors=BK%2CBL&statuses=active%2Csuspended&regFrom=2026-01-01,,,TAB,MK03,TAB-ST13,"128,512","BK,BL",,,"active,suspended",,,2026-01-01,,,3,1,P-10197,ステラタブ 13 128GB ブラック,109800,479,in,P-10207,369400
+PS-041,複合：該当なし（単価範囲×カテゴリ）,products.html?category=TAB&priceMin=9000000&priceMax=9000000,,,TAB,,,,,9000000,9000000,,,,,,,0,1,,,,,,,0

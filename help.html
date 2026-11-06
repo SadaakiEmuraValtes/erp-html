@@ -60,7 +60,7 @@
         { key: "remarks", label: ["テスト観点", "Test point"], value: r => ERP.product(r.code).remarks, html: r => esc(t(ERP.product(r.code).remarks, ERP.product(r.code).remarksEn)) },
       ] });
 
-      const PT = [["C-0001", "標準の得意先（与信限度額 ¥5,000,000）", "Standard customer (credit limit ¥5,000,000)"], ["C-0002", "取引停止の得意先（受注不可）", "Suspended customer (cannot order)"],
+      const PT = [["C-0001", "標準の得意先（与信限度額 ¥30,000,000）", "Standard customer (credit limit ¥30,000,000)"], ["C-0002", "取引停止の得意先（受注不可）", "Suspended customer (cannot order)"],
         ["S-001", "標準の仕入先", "Standard supplier"]];
       document.getElementById("partners").innerHTML = tableHtml({ id: "help-partner-table", rowPrefix: "help-partner", rows: PT, rowKey: p => p[0], columns: [
         { key: "code", label: ["コード", "Code"], value: p => p[0], cls: "mono" },
@@ -90,14 +90,17 @@
         </tbody></table>`;
 
       const files = [["product_search_cases.csv", "商品検索のテストケース（条件・URL・期待件数・先頭/末尾の品目）", "Product search cases (conditions, URL, expected count, first/last item)"],
+        ["product_combination_cases.csv", "検索項目の組み合わせ網羅（2項目の全組み合わせ＋カテゴリ×ブランド×容量×カラーの全組み合わせ。すべて1件以上HIT）", "Combination coverage (all 2-field pairs + every category × brand × storage × color; all return at least 1 hit)"],
         ["products_expected.csv", "全商品の一覧表示値（商品マスター一覧の data-value と一致）", "All products as listed (matches data-value in the product list)"],
         ["inventory_expected.csv", "品目×倉庫の在庫（在庫照会の data-value と一致）", "Stock by product × warehouse (matches stock inquiry)"],
         ["sales_orders_expected.csv", "受注一覧の値（金額・数量・状態）", "Sales order list values"]];
       document.getElementById("ddt").innerHTML = `
         <p style="margin-bottom:8px">${t("商品マスターの検索条件はURLパラメータで指定できます。CSVの1行＝1テストケースとして、URLを開いて結果を検証するか、検索フォームに値を入れて検索してください。期待値は<strong>初期データ</strong>（下の「データを初期化する」直後）の値です。",
           "Product search conditions can be given as URL parameters. Use one CSV row per test case: open the URL or fill the form, then verify. Expected values are for the <strong>initial data</strong> (right after Reset Data below).")}</p>
-        <p style="margin-bottom:8px"><code>products.html?category=ELC&amp;priceMin=1000&amp;statuses=active,suspended&amp;sort=price_desc&amp;pageSize=50&amp;page=2</code></p>
-        <p style="margin-bottom:8px" class="muted">${t("パラメータ：", "Parameters: ")}code / name / category / subCategory / maker / supplier / unit / priceMin / priceMax / statuses / stockStatus / warehouse / taxType / lotControl(yes|no) / origin / regFrom / regTo / sort / pageSize / page</p>
+        <p style="margin-bottom:8px"><code>products.html?category=SPH&amp;maker=MK01&amp;storages=128,256&amp;colors=BK,WH&amp;statuses=active&amp;sort=price_desc&amp;pageSize=50</code></p>
+        <p style="margin-bottom:8px" class="muted">${t("パラメータ：", "Parameters: ")}keyword / code / category(SPH|TAB) / maker / subCategory / storages(64,128,256,512) / colors(BK,WH,BL,PK) / priceMin / priceMax / statuses / stockStatus / warehouse / regFrom / regTo / sort / pageSize / page</p>
+        <p style="margin-bottom:8px" class="muted">${t("項目間は AND、storages / colors / statuses のカンマ区切りは OR。keyword はスペース区切りで AND（品名・英名・シリーズ・ブランド・容量・カラー名が対象。全角半角・大文字小文字は区別しない）。",
+          "AND between fields; comma-separated storages / colors / statuses are OR. keyword is space-separated AND over name, English name, series, brand, storage and color (width- and case-insensitive).")}</p>
         <ul style="margin-left:20px" id="ddt-files">${files.map(f => `<li><a href="testdata/${f[0]}" download id="dl-${f[0].replace(".csv", "")}">testdata/${f[0]}</a> – ${t(f[1], f[2])}</li>`).join("")}</ul>
         <p class="muted mt-16">${t("※ 商品一覧の「CSV出力」でも、表示中の検索結果を同じ列名で出力できます。", "* \"Export CSV\" on the product list exports the current results with the same column names.")}</p>`;
 

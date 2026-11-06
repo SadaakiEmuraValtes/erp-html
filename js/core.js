@@ -11,7 +11,9 @@ const ERP = (() => {
     PO:       "erp_purchase_orders",  // 発注
     SH:       "erp_shipments",        // 配送
     MV:       "erp_movements",        // 入出庫履歴
+    VERSION:  "erp_data_version",     // 保存データの版数
   };
+  const DATA_VERSION = 2;             // v2: 商品をスマートフォン・タブレットに再構成
   const _store = (() => { try { return typeof localStorage !== "undefined" ? localStorage : null; } catch (e) { return null; } })();
   const _read = (k, def) => { try { const v = _store && _store.getItem(k); return v ? JSON.parse(v) : def; } catch (e) { return def; } };
   const _write = (k, v) => { if (_store) _store.setItem(k, JSON.stringify(v)); };
@@ -24,6 +26,11 @@ const ERP = (() => {
 
   // ── 初期化 ────────────────────────────────────────────────
   function init() {
+    // マスター・サンプル取引の構成を変えたら DATA_VERSION を上げる → 保存済みの業務データを破棄して初期データに戻す（ログイン状態は維持）
+    if (_store && _read(LS.VERSION, null) !== DATA_VERSION) {
+      [LS.PRODUCTS, LS.SO, LS.PO, LS.SH, LS.MV].forEach(k => _store.removeItem(k));
+      _write(LS.VERSION, DATA_VERSION);
+    }
     const load = (key, seed) => {
       const v = _read(key, null);
       if (Array.isArray(v)) return v;
@@ -68,6 +75,8 @@ const ERP = (() => {
   const subCategory = code => { for (const c of CATEGORIES) { const s = c.subs.find(x => x.code === code); if (s) return s; } return null; };
   const maker     = code => MAKERS.find(m => m.code === code);
   const origin    = code => ORIGINS.find(o => o.code === code);
+  const storage   = code => STORAGES.find(x => x.code === String(code));
+  const color     = code => COLORS.find(x => x.code === code);
 
   const productName = p => (p ? _t(p.name, p.nameEn) : "");
   const partnerName = code => { const p = partner(code); return p ? _t(p.name, p.nameEn) : code || ""; };
@@ -76,6 +85,8 @@ const ERP = (() => {
     subCategory: code => _lbl(subCategory(code)),
     maker:       code => _lbl(maker(code)),
     unit:        code => _lbl(UNITS[code]),
+    storage:     code => _lbl(storage(code)),
+    color:       code => _lbl(color(code)),
     tax:         code => _lbl(TAX_TYPES[code]),
     status:      code => _lbl(PRODUCT_STATUS[code]),
     stockStatus: code => _lbl(STOCK_STATUS[code]),
@@ -149,7 +160,7 @@ const ERP = (() => {
     const t = totals(p.code);
     const row = {
       code: p.code, name: p.name, nameEn: p.nameEn, category: p.category, subCategory: p.subCategory,
-      maker: p.maker, supplier: p.supplier, unit: p.unit, unitPrice: p.unitPrice, cost: p.cost,
+      maker: p.maker, storage: p.storage, color: p.color, supplier: p.supplier, unit: p.unit, unitPrice: p.unitPrice, cost: p.cost,
       marginRate: p.unitPrice > 0 ? Math.round((p.unitPrice - p.cost) / p.unitPrice * 1000) / 10 : 0,
       taxType: p.taxType, status: p.status, lotControl: p.lotControl, origin: p.origin,
       leadTimeDays: p.leadTimeDays, safetyStock: p.safetyStock, weight: p.weight, jan: p.jan,
@@ -161,9 +172,10 @@ const ERP = (() => {
   }
 
   // ── 商品検索 ──────────────────────────────────────────────
-  // c: code / name / category / subCategory / maker / supplier / unit / priceMin / priceMax /
-  //    statuses(配列) / stockStatus / warehouse / taxType / lotControl("yes"|"no") / origin /
-  //    regFrom / regTo / sort
+  // c: code / keyword / category / subCategory(シリーズ) / maker(ブランド) / storages(配列) / colors(配列) /
+  //    priceMin / priceMax / statuses(配列) / stockStatus / warehouse / regFrom / regTo / sort
+  // 項目間は AND、複数選択（storages / colors / statuses）の中は OR。
+  // keyword はスペース区切りの AND（品名・英名・シリーズ名・ブランド名・容量・カラー名が対象、全角半角・大文字小文字を区別しない）
   const PRODUCT_SORTS = {
     code_asc:   (a, b) => a.code.localeCompare(b.code),
     code_desc:  (a, b) => b.code.localeCompare(a.code),
@@ -174,27 +186,32 @@ const ERP = (() => {
     stock_desc: (a, b) => b.available - a.available || a.code.localeCompare(b.code),
     reg_desc:   (a, b) => b.registeredAt.localeCompare(a.registeredAt) || a.code.localeCompare(b.code),
   };
+  const _norm = v => String(v ?? "").normalize("NFKC").toLowerCase();
+  function _keywordText(r) {
+    const ss = subCategory(r.subCategory), mk = maker(r.maker), st = storage(r.storage), co = color(r.color);
+    return _norm([r.name, r.nameEn, ss && ss.name, ss && ss.en, mk && mk.name, mk && mk.en, st && st.name, co && co.name, co && co.en].filter(Boolean).join(" "));
+  }
   function searchProducts(c = {}) {
     const has = v => v !== undefined && v !== null && v !== "";
-    const code = (c.code || "").trim().toUpperCase(), name = (c.name || "").trim().toLowerCase();
+    const list = v => (Array.isArray(v) ? v : has(v) ? String(v).split(",") : []).filter(has);
+    const code = (c.code || "").trim().toUpperCase();
+    const words = _norm(c.keyword).split(/\s+/).filter(Boolean);
     const num = v => (has(v) ? Number(v) : null);
     const pMin = num(c.priceMin), pMax = num(c.priceMax);
+    const storages = list(c.storages), colors = list(c.colors), statuses = list(c.statuses);
     let rows = S.products.map(productRow).filter(r =>
       (!code || r.code.toUpperCase().includes(code)) &&
-      (!name || r.name.toLowerCase().includes(name) || r.nameEn.toLowerCase().includes(name)) &&
+      (!words.length || (t => words.every(w => t.includes(w)))(_keywordText(r))) &&
       (!has(c.category) || r.category === c.category) &&
       (!has(c.subCategory) || r.subCategory === c.subCategory) &&
       (!has(c.maker) || r.maker === c.maker) &&
-      (!has(c.supplier) || r.supplier === c.supplier) &&
-      (!has(c.unit) || r.unit === c.unit) &&
+      (!storages.length || storages.includes(String(r.storage))) &&
+      (!colors.length || colors.includes(r.color)) &&
       (pMin === null || r.unitPrice >= pMin) &&
       (pMax === null || r.unitPrice <= pMax) &&
-      (!c.statuses || !c.statuses.length || c.statuses.includes(r.status)) &&
+      (!statuses.length || statuses.includes(r.status)) &&
       (!has(c.stockStatus) || r.stockStatus === c.stockStatus) &&
       (!has(c.warehouse) || r["stock_" + c.warehouse] > 0) &&
-      (!has(c.taxType) || r.taxType === c.taxType) &&
-      (!has(c.lotControl) || r.lotControl === (c.lotControl === "yes")) &&
-      (!has(c.origin) || r.origin === c.origin) &&
       (!has(c.regFrom) || r.registeredAt >= c.regFrom) &&
       (!has(c.regTo) || r.registeredAt <= c.regTo));
     rows.sort(PRODUCT_SORTS[c.sort] || PRODUCT_SORTS.code_asc);
@@ -212,7 +229,10 @@ const ERP = (() => {
     if (!d.name || !d.name.trim()) e.name = _t("品名は必須です", "Name is required");
     else if (d.name.length > 100) e.name = _t("品名は100文字以内で入力してください", "Name must be 100 characters or less");
     if (!d.category) e.category = _t("カテゴリを選択してください", "Select a category");
-    if (!subCategory(d.subCategory) || !d.subCategory.startsWith(d.category + "-")) e.subCategory = _t("サブカテゴリを選択してください", "Select a sub-category");
+    if (!subCategory(d.subCategory) || !d.subCategory.startsWith(d.category + "-")) e.subCategory = _t("シリーズを選択してください", "Select a series");
+    else if (d.maker && subCategory(d.subCategory).maker !== d.maker) e.subCategory = _t("選択したブランドのシリーズではありません", "This series does not belong to the selected brand");
+    if (!storage(d.storage)) e.storage = _t("ストレージ容量を選択してください", "Select a storage capacity");
+    if (!color(d.color)) e.color = _t("カラーを選択してください", "Select a color");
     if (!d.unit) e.unit = _t("単位を選択してください", "Select a unit");
     if (!int(d.unitPrice) || Number(d.unitPrice) > 99999999) e.unitPrice = _t("販売単価は0〜99,999,999の整数で入力してください", "Unit price must be an integer 0-99,999,999");
     if (!int(d.cost) || Number(d.cost) > 99999999) e.cost = _t("標準原価は0〜99,999,999の整数で入力してください", "Cost must be an integer 0-99,999,999");
@@ -228,7 +248,7 @@ const ERP = (() => {
     if (!can("product_edit")) return { ok: false, errors: { _: _t("権限がありません", "Permission denied") } };
     const errors = validateProduct(d, isNew);
     if (Object.keys(errors).length) return { ok: false, errors };
-    const fields = ["name", "nameEn", "category", "subCategory", "maker", "supplier", "unit", "origin", "taxType", "status", "jan", "remarks"];
+    const fields = ["name", "nameEn", "category", "subCategory", "maker", "storage", "color", "supplier", "unit", "origin", "taxType", "status", "jan", "remarks"];
     const nums = ["unitPrice", "cost", "safetyStock", "leadTimeDays", "weight"];
     let p = isNew ? null : product(d.code);
     if (!isNew && !p) return { ok: false, errors: { _: _t("品目が見つかりません", "Product not found") } };
@@ -540,7 +560,7 @@ const ERP = (() => {
   return {
     LS, init, resetAll,
     login, logout, currentUser, can, userName, roleName,
-    product, partner, warehouse, category, subCategory, maker, origin, productName, partnerName, label,
+    product, partner, warehouse, category, subCategory, maker, origin, storage, color, productName, partnerName, label,
     inventory, totals, productRow, searchProducts, PRODUCT_SORTS, validateProduct, saveProduct,
     orderAmounts, searchSalesOrders, salesOrder, creditBalance, createSalesOrder, instructShipment, cancelSalesOrder,
     searchShipments, shipment, confirmShipment, confirmDelivery,

@@ -18,7 +18,7 @@
   <script>
     // ?code=P-00001 → 詳細 / ?mode=edit&code=P-00001 → 編集 / ?mode=new → 新規登録
     const mode = qp("mode") || "view", code = qp("code");
-    const FORM_FIELDS = ["code", "name", "nameEn", "category", "subCategory", "maker", "supplier", "unit", "unitPrice", "cost", "taxType", "status",
+    const FORM_FIELDS = ["code", "name", "nameEn", "category", "subCategory", "maker", "storage", "color", "supplier", "unit", "unitPrice", "cost", "taxType", "status",
       "safetyStock", "leadTimeDays", "weight", "origin", "jan", "remarks"];
 
     document.addEventListener("DOMContentLoaded", () => {
@@ -59,13 +59,16 @@
               ${row("name", t("品名", "Name"), p.name)}
               ${row("nameEn", t("品名（英語）", "Name (English)"), p.nameEn)}
               ${row("category", t("カテゴリ", "Category"), p.category, `${p.category} ${esc(ERP.label.category(p.category))}`)}
-              ${row("subCategory", t("サブカテゴリ", "Sub-category"), p.subCategory, `${p.subCategory} ${esc(ERP.label.subCategory(p.subCategory))}`)}
-              ${row("maker", t("メーカー", "Maker"), p.maker, `${p.maker} ${esc(ERP.label.maker(p.maker))}`)}
+              ${row("maker", t("ブランド", "Brand"), p.maker, `${p.maker} ${esc(ERP.label.maker(p.maker))}`)}
+              ${row("subCategory", t("シリーズ", "Series"), p.subCategory, `${p.subCategory} ${esc(ERP.label.subCategory(p.subCategory))}`)}
+              ${row("storage", t("ストレージ容量", "Storage"), p.storage, esc(ERP.label.storage(p.storage)))}
+              ${row("color", t("カラー", "Color"), p.color, esc(ERP.label.color(p.color)))}
+              ${row("screen", t("画面サイズ", "Screen size"), (ERP.subCategory(p.subCategory) || {}).screen ?? "", ERP.subCategory(p.subCategory) ? t(`${ERP.subCategory(p.subCategory).screen} インチ`, `${ERP.subCategory(p.subCategory).screen} in`) : "-")}
               ${row("supplier", t("仕入先", "Supplier"), p.supplier, `${p.supplier} ${esc(ERP.partnerName(p.supplier))}`)}
               ${row("origin", t("原産国", "Origin"), p.origin, esc(ERP.label.origin(p.origin)))}
               ${row("jan", t("JANコード", "JAN code"), p.jan, `<span class="mono">${esc(p.jan)}</span>`)}
               ${row("status", t("ステータス", "Status"), p.status, badge("status", p.status))}
-              ${row("registeredAt", t("登録日", "Registered"), p.registeredAt, dt(p.registeredAt))}
+              ${row("registeredAt", t("発売日（登録日）", "Release (registered)"), p.registeredAt, dt(p.registeredAt))}
               ${row("updatedAt", t("更新日", "Updated"), p.updatedAt, dt(p.updatedAt))}
               ${row("remarks", t("備考", "Remarks"), p.remarks, esc(t(p.remarks, p.remarksEn || p.remarks)) || "-")}
             </table></div>
@@ -77,7 +80,7 @@
               ${row("marginRate", t("粗利率", "Margin"), r.marginRate.toFixed(1), r.marginRate.toFixed(1) + "%")}
               ${row("taxType", t("課税区分", "Tax type"), p.taxType, esc(ERP.label.tax(p.taxType)))}
               ${row("priceWithTax", t("税込単価", "Price incl. tax"), Math.floor(p.unitPrice * (1 + TAX_TYPES[p.taxType].rate)), yen(Math.floor(p.unitPrice * (1 + TAX_TYPES[p.taxType].rate))))}
-              ${row("lotControl", t("ロット管理", "Lot control"), p.lotControl ? "yes" : "no", p.lotControl ? t("あり", "Yes") : t("なし", "No"))}
+              ${row("lotControl", t("ロット（製造番号）管理", "Lot (serial) control"), p.lotControl ? "yes" : "no", p.lotControl ? t("あり", "Yes") : t("なし", "No"))}
               ${row("leadTimeDays", t("調達リードタイム", "Lead time"), p.leadTimeDays, t(`${p.leadTimeDays} 日`, `${p.leadTimeDays} days`))}
               ${row("safetyStock", t("安全在庫", "Safety stock"), p.safetyStock, num(p.safetyStock))}
               ${row("weight", t("重量", "Weight"), p.weight, `${num(p.weight)} g`)}
@@ -118,12 +121,12 @@
 
     // ══════════ 登録・編集フォーム ══════════
     function renderForm(p, isNew) {
-      const v = p || { code: "", name: "", nameEn: "", category: "", subCategory: "", maker: "MK01", supplier: "S-001", unit: "pcs", unitPrice: "", cost: "",
+      const v = p || { code: "", name: "", nameEn: "", category: "", subCategory: "", maker: "MK01", storage: "", color: "", supplier: "S-001", unit: "unit", unitPrice: "", cost: "",
         taxType: "standard", status: "active", safetyStock: 0, leadTimeDays: 7, weight: 0, origin: "JP", jan: "", remarks: "", lotControl: false };
       const g = (key, label, input, req = false, full = false) => `<div class="form-group${full ? " full" : ""}" id="g-${key}">
         <label for="f-${key}" class="${req ? "req" : ""}">${label}</label>${input}<span class="err" id="err-${key}"></span></div>`;
       const txt = (key, val, attrs = "") => `<input type="text" id="f-${key}" name="${key}" value="${esc(val)}" ${attrs}>`;
-      const sel = (key, opts, val, empty) => `<select id="f-${key}" name="${key}" ${key === "category" ? 'onchange="onFormCategory()"' : ""}>${optionsHtml(opts, val, empty)}</select>`;
+      const sel = (key, opts, val, empty) => `<select id="f-${key}" name="${key}" ${key === "category" || key === "maker" ? 'onchange="onFormCategory()"' : ""}>${optionsHtml(opts, val, empty)}</select>`;
       document.getElementById("page").innerHTML = `
         <h1 class="page-title" id="page-title">${isNew ? t("➕ 商品登録", "➕ New Product") : `✏️ ${t("商品編集", "Edit Product")} <span class="mono">${p.code}</span>`}</h1>
         <div id="form-errors" class="alert alert-danger hidden" role="alert"></div>
@@ -134,8 +137,10 @@
             ${g("name", t("品名", "Name"), txt("name", v.name, 'maxlength="120"'), true, true)}
             ${g("nameEn", t("品名（英語）", "Name (English)"), txt("nameEn", v.nameEn), false, true)}
             ${g("category", t("カテゴリ", "Category"), sel("category", OPTS.category(), v.category, t("選択してください", "Select")), true)}
-            ${g("subCategory", t("サブカテゴリ", "Sub-category"), sel("subCategory", OPTS.subCategory(v.category), v.subCategory, t("選択してください", "Select")), true)}
-            ${g("maker", t("メーカー", "Maker"), sel("maker", OPTS.maker(), v.maker))}
+            ${g("maker", t("ブランド", "Brand"), sel("maker", OPTS.maker(), v.maker))}
+            ${g("subCategory", t("シリーズ", "Series"), sel("subCategory", OPTS.subCategory(v.category, v.maker), v.subCategory, t("選択してください", "Select")), true)}
+            ${g("storage", t("ストレージ容量", "Storage"), sel("storage", OPTS.storage(), v.storage, t("選択してください", "Select")), true)}
+            ${g("color", t("カラー", "Color"), sel("color", OPTS.color(), v.color, t("選択してください", "Select")), true)}
             ${g("supplier", t("仕入先", "Supplier"), sel("supplier", OPTS.supplier(), v.supplier))}
             ${g("unit", t("単位", "Unit"), sel("unit", OPTS.unit(), v.unit), true)}
             ${g("taxType", t("課税区分", "Tax type"), sel("taxType", OPTS.tax(), v.taxType), true)}
@@ -146,7 +151,7 @@
             ${g("weight", t("重量（g）", "Weight (g)"), txt("weight", v.weight, 'inputmode="numeric"'), true)}
             ${g("origin", t("原産国", "Origin"), sel("origin", OPTS.origin(), v.origin))}
             ${g("jan", t("JANコード（13桁）", "JAN code (13 digits)"), txt("jan", v.jan, 'inputmode="numeric" maxlength="13"'))}
-            <div class="form-group" id="g-lotControl"><span class="form-label">${t("ロット管理", "Lot control")}</span>
+            <div class="form-group" id="g-lotControl"><span class="form-label">${t("ロット（製造番号）管理", "Lot (serial) control")}</span>
               <label class="check-group" for="f-lotControl"><input type="checkbox" id="f-lotControl" name="lotControl" ${v.lotControl ? "checked" : ""}> ${t("ロット管理する", "Lot-controlled")}</label></div>
             ${g("remarks", t("備考", "Remarks"), `<textarea id="f-remarks" name="remarks" rows="3">${esc(v.remarks)}</textarea>`, false, true)}
           </div>
@@ -158,7 +163,8 @@
     }
 
     function onFormCategory() {
-      document.getElementById("f-subCategory").innerHTML = optionsHtml(OPTS.subCategory(document.getElementById("f-category").value), "", t("選択してください", "Select"));
+      const sel = document.getElementById("f-subCategory"), cur = sel.value;
+      sel.innerHTML = optionsHtml(OPTS.subCategory(document.getElementById("f-category").value, document.getElementById("f-maker").value), cur, t("選択してください", "Select"));
     }
 
     function save(isNew) {

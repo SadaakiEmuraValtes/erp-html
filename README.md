@@ -5,6 +5,7 @@
 🌐 **デモサイト**: https://sadaakiemuravaltes.github.io/erp-html/
 
 SAP のような基幹業務システムを簡略化したデモです。**左にメニュー、右に機能**の画面構成で、受注・発注・配送・在庫・商品マスター・取引先を扱います。
+取り扱う商品は**スマートフォンとタブレットのみ**（架空ブランド4社）です。
 **データドリブンテスト**を作りやすいよう、検索条件をURLで指定でき、一覧・詳細のすべての値に XPath で特定しやすい属性（`data-key` / `data-col` / `data-value`）を付けています。
 
 [TicketMarket](https://github.com/SadaakiEmuraValtes/ticket-market) と同じ実装方針（Vanilla JS・ビルド不要・`buildPage()`・`?lang=en` 英語対応・テスト用ID設計）です。
@@ -56,7 +57,7 @@ python -m http.server 8080   # または npx serve .
 | 配送管理 | `shipments.html` | 配送検索、出荷確定（配送業者・送り状番号12桁、在庫減算）、配達完了 |
 | 在庫照会 | `inventory.html` | 品目×倉庫の現在庫・引当数・有効在庫・発注残・安全在庫・状態、在庫調整 |
 | 入出庫履歴 | `movements.html` | 入荷・出荷・在庫調整の履歴検索 |
-| 商品マスター / 商品登録 | `products.html` / `product.html` | **14項目の組み合わせ検索**・並び替え・20/50/100件ページャー・CSV出力、詳細（倉庫別在庫・入出庫履歴）、登録・編集 |
+| 商品マスター / 商品登録 | `products.html` / `product.html` | **13項目の組み合わせ検索**（キーワードAND・容量/カラー/ステータスの複数選択）・並び替え・20/50/100件ページャー・CSV出力、詳細（倉庫別在庫・入出庫履歴）、登録・編集 |
 | 取引先マスター | `partners.html` | 得意先25社・仕入先12社、与信限度額・与信残 |
 | ヘルプ・テストデータ | `help.html` | テストアカウント・権限表・テスト用品目・XPath規約・テストデータCSV・データ初期化 |
 
@@ -66,10 +67,28 @@ python -m http.server 8080   # または npx serve .
 
 ## 📊 マスターデータ
 
-- **商品 312件**：テスト用 `P-00001`〜`P-00012` ＋ 自動生成 `P-10001`〜`P-10300`（6カテゴリ×20サブカテゴリ×15品目）
+- **商品 268件**：テスト用 `P-00001`〜`P-00012` ＋ 自動生成 `P-10001`〜`P-10256`
+  - 自動生成は **シリーズ16 × ストレージ4 × カラー4**（シリーズ順 → 容量順 → カラー順に採番）。どのシリーズでも容量×カラーの全組み合わせが存在する
+- **カテゴリ 2**：`SPH` スマートフォン / `TAB` タブレット
+- **ブランド 4**（`maker`）：`MK01` バルテスモバイル / `MK02` アオバ電機 / `MK03` ホクトテック / `MK04` ツバサ電子（すべて架空）
+- **ストレージ 4**：`64` / `128` / `256` / `512`（GB）、**カラー 4**：`BK` ブラック / `WH` ホワイト / `BL` ブルー / `PK` ピンク
 - **倉庫 3**：`WH01` 東京中央倉庫 / `WH02` 大阪物流センター / `WH03` 福岡配送センター
 - **取引先 37**：得意先 `C-0001`〜`C-0025`、仕入先 `S-001`〜`S-012`
-- **サンプル取引**：受注39件・発注24件・配送24件・入出庫履歴66件（2026/08〜10）
+- **サンプル受注・発注・配送・入出庫履歴**（2026/08〜10）。倉庫ごとに1件「全数引当」の受注があり、現在庫はあるが有効在庫0（在庫なし）の品目ができる
+
+### シリーズ（`subCategory`）
+
+| カテゴリ | MK01 バルテスモバイル | MK02 アオバ電機 | MK03 ホクトテック | MK04 ツバサ電子 |
+|---------|---------------------|----------------|------------------|----------------|
+| SPH スマートフォン | `SPH-VP15` Vフォン 15 / `SPH-VPLT` Vフォン Lite | `SPH-LFX` リーフ X / `SPH-LFS` リーフ S | `SPH-STU` ステラ Ultra / `SPH-STN` ステラ Neo | `SPH-WG1` ウイング One / `SPH-WGG` ウイング Go |
+| TAB タブレット | `TAB-VTP` Vタブ Pro 12 / `TAB-VT8` Vタブ 8 | `TAB-LP11` リーフパッド 11 / `TAB-LPM` リーフパッド mini | `TAB-ST13` ステラタブ 13 / `TAB-STL` ステラタブ Lite | `TAB-WP11` ウイングパッド 11 / `TAB-WPK` ウイングパッド Kids |
+
+販売単価＝シリーズの基本価格（64GB）＋容量加算（128GB +¥10,000 / 256GB +¥25,000 / 512GB +¥50,000）。登録日＝シリーズの発売日。
+
+### 組み合わせでも必ずHITするデータ設計
+
+ステータス・在庫傾向は（シリーズ番号, 容量, カラー）から規則的に割り当てているため、**どのシリーズ・ブランド・容量・カラーにも**「有効／販売停止／廃番」「在庫あり／安全在庫割れ／在庫なし」「一部の倉庫のみ在庫」が含まれます。
+`node tools/gen-testdata.js` は選択式の検索項目（カテゴリ・ブランド・シリーズ・容量・カラー・ステータス・在庫状態・倉庫）の**2項目の全組み合わせ**と、**カテゴリ×ブランド×容量×カラーの全組み合わせ**（計657パターン）を検索し、1件でも0件があればエラーにします。
 
 データは**日付固定・固定シードの LCG**で生成しているため、いつ開いても同じ値になります（期待値が変わらない）。
 
@@ -82,14 +101,16 @@ python -m http.server 8080   # または npx serve .
 | P-00003 | 安全在庫割れ品 | 有効在庫 < 安全在庫 |
 | P-00004 | 販売停止品 | 受注不可 |
 | P-00005 | 廃番品 | 受注・発注不可 |
-| P-00006 | 高額品 精密測定ユニット | 単価 ¥9,800,000（与信超過の確認にも） |
+| P-00006 | 高額品 法人向けタブレット100台セット | 単価 ¥9,800,000（与信超過の確認にも） |
 | P-00007 | サンプル品（単価0円） | 単価0円 |
 | P-00008 | 【長い品名テスト】… | 表示崩れ確認 |
 | P-00009 | 記号テスト品 A&B <特殊> "記号" 'テスト' | HTMLエスケープ確認 |
 | P-00010 / P-00011 | 軽減税率テスト品 / 非課税テスト品 | 消費税 8% / 0% |
 | P-00012 | ロット管理品 東京在庫のみ | ロット管理・東京倉庫のみ在庫 |
 
-テスト用取引先：`C-0001`（標準・与信限度額 ¥5,000,000）／ `C-0002`（取引停止・受注不可）／ `S-001`（標準仕入先）
+テスト用品目もそれぞれシリーズ・容量・カラーを持ち、検索対象になります。
+
+テスト用取引先：`C-0001`（標準・与信限度額 ¥30,000,000）／ `C-0002`（取引停止・受注不可）／ `S-001`（標準仕入先）
 
 ---
 
@@ -100,22 +121,29 @@ python -m http.server 8080   # または npx serve .
 商品マスターの検索条件はすべて URL パラメータに反映されます（パラメータ名＝検索フォームの要素ID `#s-{名前}`）。
 
 ```
-products.html?category=ELC&priceMin=1000&statuses=active,suspended&sort=price_desc&pageSize=50&page=2
+products.html?category=SPH&maker=MK01&storages=128,256&colors=BK,WH&statuses=active&sort=price_desc&pageSize=50&page=2
 ```
+
+**項目間は AND、カンマ区切り（`storages` / `colors` / `statuses`）の中は OR** です。
 
 | パラメータ | 内容 | 値の例 |
 |-----------|------|-------|
-| `code` / `name` | 品目コード / 品名（部分一致・英名も対象・大文字小文字区別なし） | `P-100` / `bearing` |
-| `category` / `subCategory` | カテゴリ / サブカテゴリ | `ELC` / `ELC-RES` |
-| `maker` / `supplier` / `unit` | メーカー / 仕入先 / 単位 | `MK03` / `S-001` / `roll` |
-| `priceMin` / `priceMax` | 販売単価の範囲（両端を含む） | `1000` / `2000` |
-| `statuses` | ステータス（カンマ区切り） | `active,suspended,discontinued` |
+| `keyword` | キーワード。**スペース区切りで AND**。品名・英名・シリーズ名・ブランド名・容量・カラー名が対象（全角半角・大文字小文字を区別しない） | `Vフォン 128GB ブラック` / `stella pink` |
+| `code` | 品目コード（部分一致） | `P-100` |
+| `category` | カテゴリ | `SPH` / `TAB` |
+| `maker` | ブランド | `MK03` |
+| `subCategory` | シリーズ（画面ではカテゴリ・ブランドで選択肢が絞られる） | `TAB-ST13` |
+| `storages` | ストレージ容量（カンマ区切り・OR） | `128,256` |
+| `colors` | カラー（カンマ区切り・OR） | `BK,PK` |
+| `priceMin` / `priceMax` | 販売単価の範囲（両端を含む） | `50000` / `80000` |
+| `statuses` | ステータス（カンマ区切り・OR） | `active,suspended,discontinued` |
 | `stockStatus` | 在庫状態 | `in` / `low` / `out` |
-| `warehouse` | 在庫のある倉庫 | `WH01` |
-| `taxType` / `lotControl` / `origin` | 課税区分 / ロット管理 / 原産国 | `reduced` / `yes` / `DE` |
-| `regFrom` / `regTo` | 登録日の範囲 | `2026-01-01` |
+| `warehouse` | 現在庫のある倉庫 | `WH01` |
+| `regFrom` / `regTo` | 発売日（登録日）の範囲 | `2026-01-01` |
 | `sort` | 並び順 | `code_asc`（既定）`code_desc` `name_asc` `price_asc` `price_desc` `stock_asc` `stock_desc` `reg_desc` |
 | `pageSize` / `page` | 表示件数（20/50/100）/ ページ | `50` / `2` |
+
+検索フォームの要素：テキスト・セレクトは `#s-{パラメータ名}`、チェックボックスは `#s-storage-{64|128|256|512}` / `#s-color-{BK|WH|BL|PK}` / `#s-status-{値}`。
 
 受注・発注・配送・在庫・入出庫履歴・取引先の一覧も同様に検索条件が URL に反映されます。
 
@@ -123,10 +151,11 @@ products.html?category=ELC&priceMin=1000&statuses=active,suspended&sort=price_de
 
 | ファイル | 内容 |
 |---------|------|
-| `product_search_cases.csv` | 商品検索 35ケース：条件・URL・期待件数・ページ数・先頭/末尾の品目コード・先頭の単価/有効在庫/在庫状態・単価合計 |
-| `products_expected.csv` | 全312品目の一覧表示値（一覧セルの `data-value` と一致） |
-| `inventory_expected.csv` | 品目×倉庫 936行の在庫（在庫照会の `data-value` と一致） |
-| `sales_orders_expected.csv` | 受注39件の金額・数量・状態 |
+| `product_search_cases.csv` | 商品検索 41ケース（単一条件・キーワードAND・複数選択OR・並び順・複合条件）：条件・URL・期待件数・ページ数・先頭/末尾の品目コード・先頭の単価/有効在庫/在庫状態・単価合計 |
+| `product_combination_cases.csv` | 組み合わせ網羅 657ケース：選択式8項目の2項目全組み合わせ＋カテゴリ×ブランド×容量×カラー全組み合わせ。URL・期待件数・先頭/末尾の品目コード（**すべて1件以上HIT**） |
+| `products_expected.csv` | 全268品目の一覧表示値（一覧セルの `data-value` と一致） |
+| `inventory_expected.csv` | 品目×倉庫 804行の在庫（在庫照会の `data-value` と一致） |
+| `sales_orders_expected.csv` | 受注43件の金額・数量・状態 |
 
 期待値は**初期データ**（ヘルプ画面の「データを初期化する」直後）の値です。データを変えた場合は以下で再生成できます。
 
@@ -149,7 +178,7 @@ node tools/gen-testdata.js
 | セル（ID） | `#{行接頭辞}-{キー}-{列}` | `#product-P-00001-unitPrice` / `#inv-P-00001-WH01-available` / `#so-SO-2026-00001-total` |
 | 列見出し | `th[@data-col]` | `//table[@id='so-table']//th[@data-col='total']` |
 | 詳細画面の項目 | `#d-{項目}` ＋ `@data-value` | `//td[@id='d-unitPrice']/@data-value` / `#d-total` |
-| 検索条件 | `#s-{項目}`、ステータスのチェックは `#s-status-{値}` | `#s-category` / `#s-priceMin` / `#s-status-active` / `#btn-search` / `#btn-clear` |
+| 検索条件 | `#s-{項目}`、チェックは `#s-status-{値}` `#s-storage-{値}` `#s-color-{値}` | `#s-keyword` / `#s-category` / `#s-storage-128` / `#s-color-BK` / `#btn-search` / `#btn-clear` |
 | 件数・ページャー | `#result-count/@data-count`、`#pager[@data-current][@data-total]` | 下部 `#page-3` `#next` `#prev` `#first` `#last`、上部 `#top-page-3` `#top-next` |
 | 登録フォーム | `#f-{項目}`、エラー `#err-{項目}` ・ `#g-{項目}.has-error`、まとめ `#form-errors .form-error-item` | `#f-unitPrice` / `#btn-save` / `#btn-register` |
 | 明細入力 | `#line-code-{n}` `#line-qty-{n}` `#line-price-{n}` `#line-amount-{n}` `#line-stock-{n}` | 合計 `#sum-subtotal` `#sum-tax` `#sum-total`（`@data-value`） |
@@ -157,7 +186,7 @@ node tools/gen-testdata.js
 | ステータス | `span.badge[@data-status]` | `//tr[@data-key='SO-2026-00001']//span[@data-status]` |
 | 操作ボタン | 受注 `#btn-instruct` `#btn-cancel-so`、発注 `#btn-receive` `#btn-cancel-po`、配送 `#btn-ship-{配送番号}` `#btn-deliver-{配送番号}`、在庫 `#btn-adjust-{品目}-{倉庫}` | モーダル `#m-carrier` `#m-tracking` `#btn-confirm-ship` / `#m-qty` `#m-reason` `#btn-confirm-adjust` |
 | 権限で無効なボタン | `button[@data-perm][@disabled]` | 閲覧ユーザーで `#btn-edit[disabled]` |
-| メッセージ | 遷移後 `#flash`、トースト `.toast` | `受注 SO-2026-00040 を登録しました。` |
+| メッセージ | 遷移後 `#flash`、トースト `.toast` | `受注 SO-2026-00044 を登録しました。` |
 
 一覧の主な表 ID：`#product-table` `#so-table` `#po-table` `#shipment-table` `#inventory-table` `#movement-table` `#partner-table` / 明細 `#so-lines-table` `#po-lines-table`
 
@@ -174,7 +203,7 @@ node tools/gen-testdata.js
 7. 発注 → 入荷処理で入荷倉庫の在庫が増える。キャンセルは発注済のみ
 8. 在庫調整は0以外の整数。調整後在庫がマイナス／引当数未満になる調整は不可
 9. 在庫状態：有効在庫0以下＝在庫なし（`out`）／安全在庫未満＝安全在庫割れ（`low`）／それ以外＝在庫あり（`in`）。倉庫別は安全在庫÷3（切り上げ）で判定
-10. 商品登録：品目コード `P-00000` 形式・重複不可、標準原価 ≦ 販売単価、JAN 13桁
+10. 商品登録：品目コード `P-00000` 形式・重複不可、シリーズはカテゴリ・ブランドに属するもの、容量・カラー必須、標準原価 ≦ 販売単価、JAN 13桁
 
 ---
 
@@ -201,8 +230,9 @@ erp-html/
 
 ## 💾 データ保存（localStorage）
 
-`erp_session`（ログイン）/ `erp_products` / `erp_sales_orders` / `erp_purchase_orders` / `erp_shipments` / `erp_movements`
-引当数・発注残・現在庫は受注・発注・入出庫履歴から都度計算します。ヘルプ画面の「データを初期化する」で初期状態に戻ります。
+`erp_session`（ログイン）/ `erp_data_version`（データ版数）/ `erp_products` / `erp_sales_orders` / `erp_purchase_orders` / `erp_shipments` / `erp_movements`
+引当数・発注残・現在庫は受注・発注・入出庫履歴から都度計算します。
+`js/core.js` の `DATA_VERSION` が保存済みの版数と違うと、業務データ（商品・受発注・配送・入出庫）を初期データに戻します（マスター構成を変えたら版数を上げる）。ヘルプ画面の「データを初期化する」で初期状態に戻ります。
 
 ---
 

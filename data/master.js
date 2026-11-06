@@ -75,58 +75,56 @@ const STOCK_STATUS = {
 const ORIGINS = [
   { code: "JP", name: "日本", en: "Japan" }, { code: "CN", name: "中国", en: "China" },
   { code: "VN", name: "ベトナム", en: "Vietnam" }, { code: "TH", name: "タイ", en: "Thailand" },
-  { code: "DE", name: "ドイツ", en: "Germany" }, { code: "US", name: "米国", en: "USA" },
+  { code: "TW", name: "台湾", en: "Taiwan" }, { code: "IN", name: "インド", en: "India" },
 ];
+// ブランド（すべて架空）
 const MAKERS = [
-  { code: "MK01", name: "バルテス精工", en: "Valtes Seiko" },
-  { code: "MK02", name: "アオバ工業",   en: "Aoba Kogyo" },
-  { code: "MK03", name: "ホクト精機",   en: "Hokuto Seiki" },
-  { code: "MK04", name: "コウヨウ製作所", en: "Koyo Works" },
-  { code: "MK05", name: "サクラ化成",   en: "Sakura Kasei" },
-  { code: "MK06", name: "ツバサ電子",   en: "Tsubasa Denshi" },
-  { code: "MK07", name: "ミナモ産業",   en: "Minamo Sangyo" },
-  { code: "MK08", name: "カザミ技研",   en: "Kazami Giken" },
+  { code: "MK01", name: "バルテスモバイル", en: "Valtes Mobile" },
+  { code: "MK02", name: "アオバ電機",       en: "Aoba Denki" },
+  { code: "MK03", name: "ホクトテック",     en: "Hokuto Tech" },
+  { code: "MK04", name: "ツバサ電子",       en: "Tsubasa Denshi" },
 ];
 const UNITS = {
-  pcs:  { name: "個", en: "pcs" },  bag:  { name: "袋", en: "bag" },  box:  { name: "箱", en: "box" },
-  set:  { name: "セット", en: "set" }, unit: { name: "台", en: "unit" }, roll: { name: "巻", en: "roll" },
-  pack: { name: "束", en: "bundle" }, ream: { name: "冊", en: "ream" },
+  unit: { name: "台", en: "unit" }, set: { name: "セット", en: "set" }, pcs: { name: "個", en: "pcs" },
 };
+// ストレージ容量（add: 64GB からの価格差）
+const STORAGES = [
+  { code: "64",  name: "64GB",  en: "64GB",  add: 0 },
+  { code: "128", name: "128GB", en: "128GB", add: 10000 },
+  { code: "256", name: "256GB", en: "256GB", add: 25000 },
+  { code: "512", name: "512GB", en: "512GB", add: 50000 },
+];
+const COLORS = [
+  { code: "BK", name: "ブラック", en: "Black" },
+  { code: "WH", name: "ホワイト", en: "White" },
+  { code: "BL", name: "ブルー",   en: "Blue" },
+  { code: "PK", name: "ピンク",   en: "Pink" },
+];
 
-// ── カテゴリ・サブカテゴリ（商品生成の元データ） ──────────
-// bases: [和名, 英名] × 3、specs: 仕様 × 5（[和, 英] or 共通文字列）→ サブカテゴリごとに15品目
+// ── カテゴリ・シリーズ（商品生成の元データ） ──────────────
+// カテゴリ＝スマートフォン／タブレット、シリーズ（subCategory）＝ブランドごとの機種（ブランド×カテゴリに2シリーズずつ）
+// 各シリーズを ストレージ4 × カラー4 ＝16品目に展開する（どの組み合わせでも必ず品目が存在する）
+// price: 64GB の販売単価 / screen: 画面サイズ（インチ） / weight: g / release: 発売日（＝登録日）
 const CATEGORIES = [
-  { code: "ELC", name: "電子部品", en: "Electronic Parts", subs: [
-    { code: "ELC-RES", name: "抵抗器", en: "Resistors", unit: "bag", price: [200, 1200], bases: [["炭素皮膜抵抗", "Carbon Film Resistor"], ["金属皮膜抵抗", "Metal Film Resistor"], ["チップ抵抗", "Chip Resistor"]], specs: ["100Ω", "1kΩ", "4.7kΩ", "10kΩ", "100kΩ"] },
-    { code: "ELC-CAP", name: "コンデンサ", en: "Capacitors", unit: "bag", price: [300, 2500], bases: [["セラミックコンデンサ", "Ceramic Capacitor"], ["電解コンデンサ", "Electrolytic Capacitor"], ["フィルムコンデンサ", "Film Capacitor"]], specs: ["10pF", "100nF", "1μF", "47μF", "470μF"] },
-    { code: "ELC-IC",  name: "IC", en: "ICs", unit: "pcs", price: [150, 4800], bases: [["マイコン", "Microcontroller"], ["オペアンプ", "Op-Amp"], ["電源IC", "Power IC"]], specs: ["VX-100", "VX-200", "VX-300", "VX-500", "VX-900"] },
-    { code: "ELC-CON", name: "コネクタ", en: "Connectors", unit: "pcs", price: [50, 900], bases: [["ピンヘッダ", "Pin Header"], ["USBコネクタ", "USB Connector"], ["端子台", "Terminal Block"]], specs: ["2P", "4P", "8P", "20P", "40P"] },
+  { code: "SPH", name: "スマートフォン", en: "Smartphones", subs: [
+    { code: "SPH-VP15", name: "Vフォン 15",     en: "V-Phone 15",     maker: "MK01", price: 89800,  screen: 6.1, weight: 172, release: "2025-09-19", origin: "JP" },
+    { code: "SPH-VPLT", name: "Vフォン Lite",   en: "V-Phone Lite",   maker: "MK01", price: 39800,  screen: 6.1, weight: 165, release: "2024-03-08", origin: "VN" },
+    { code: "SPH-LFX",  name: "リーフ X",       en: "Leaf X",         maker: "MK02", price: 99800,  screen: 6.7, weight: 205, release: "2026-02-20", origin: "TW" },
+    { code: "SPH-LFS",  name: "リーフ S",       en: "Leaf S",         maker: "MK02", price: 49800,  screen: 6.4, weight: 188, release: "2023-11-17", origin: "CN" },
+    { code: "SPH-STU",  name: "ステラ Ultra",   en: "Stella Ultra",   maker: "MK03", price: 129800, screen: 6.8, weight: 228, release: "2026-06-12", origin: "JP" },
+    { code: "SPH-STN",  name: "ステラ Neo",     en: "Stella Neo",     maker: "MK03", price: 34800,  screen: 6.5, weight: 190, release: "2024-08-23", origin: "IN" },
+    { code: "SPH-WG1",  name: "ウイング One",   en: "Wing One",       maker: "MK04", price: 79800,  screen: 6.3, weight: 180, release: "2025-04-25", origin: "TH" },
+    { code: "SPH-WGG",  name: "ウイング Go",    en: "Wing Go",        maker: "MK04", price: 24800,  screen: 6.0, weight: 158, release: "2023-06-30", origin: "CN" },
   ]},
-  { code: "MEC", name: "機械部品", en: "Mechanical Parts", subs: [
-    { code: "MEC-SCR", name: "ねじ・ボルト", en: "Screws & Bolts", unit: "box", price: [400, 3000], bases: [["六角ボルト", "Hex Bolt"], ["なべ小ねじ", "Pan Head Screw"], ["皿小ねじ", "Flat Head Screw"]], specs: ["M3×10", "M4×12", "M5×16", "M6×20", "M8×30"] },
-    { code: "MEC-BRG", name: "ベアリング", en: "Bearings", unit: "pcs", price: [600, 8000], bases: [["深溝玉軸受", "Deep Groove Ball Bearing"], ["円すいころ軸受", "Tapered Roller Bearing"], ["スラスト軸受", "Thrust Bearing"]], specs: [["内径10mm", "ID 10mm"], ["内径15mm", "ID 15mm"], ["内径20mm", "ID 20mm"], ["内径25mm", "ID 25mm"], ["内径30mm", "ID 30mm"]] },
-    { code: "MEC-GER", name: "ギア", en: "Gears", unit: "pcs", price: [1200, 9800], bases: [["平歯車", "Spur Gear"], ["はすば歯車", "Helical Gear"], ["かさ歯車", "Bevel Gear"]], specs: ["M1 20T", "M1 40T", "M1.5 30T", "M2 20T", "M2 50T"] },
-    { code: "MEC-SPR", name: "スプリング", en: "Springs", unit: "bag", price: [300, 2400], bases: [["圧縮ばね", "Compression Spring"], ["引張ばね", "Extension Spring"], ["ねじりばね", "Torsion Spring"]], specs: ["φ5×20", "φ8×30", "φ10×40", "φ12×50", "φ20×80"] },
-  ]},
-  { code: "OFS", name: "事務用品", en: "Office Supplies", subs: [
-    { code: "OFS-STA", name: "文具", en: "Stationery", unit: "set", price: [300, 3500], bases: [["ボールペン", "Ballpoint Pen"], ["油性マーカー", "Oil Marker"], ["修正テープ", "Correction Tape"]], specs: [["黒 10本", "Black x10"], ["赤 10本", "Red x10"], ["青 10本", "Blue x10"], ["3色 30本", "3 colors x30"], ["黒 50本", "Black x50"]] },
-    { code: "OFS-PAP", name: "用紙", en: "Paper", unit: "box", price: [1800, 9800], bases: [["コピー用紙", "Copy Paper"], ["再生紙", "Recycled Paper"], ["厚口用紙", "Heavy Paper"]], specs: [["A4 2500枚", "A4 2500 sheets"], ["A3 1500枚", "A3 1500 sheets"], ["B5 2500枚", "B5 2500 sheets"], ["B4 2000枚", "B4 2000 sheets"], ["A4 5000枚", "A4 5000 sheets"]] },
-    { code: "OFS-FIL", name: "ファイル", en: "Files", unit: "pack", price: [250, 2800], bases: [["クリアファイル", "Clear Folder"], ["フラットファイル", "Flat File"], ["リングファイル", "Ring Binder"]], specs: [["A4 10冊", "A4 x10"], ["A4 50冊", "A4 x50"], ["A3 10冊", "A3 x10"], ["B5 10冊", "B5 x10"], ["A4 色込 20冊", "A4 assorted x20"]] },
-  ]},
-  { code: "TLS", name: "工具", en: "Tools", subs: [
-    { code: "TLS-PWR", name: "電動工具", en: "Power Tools", unit: "unit", price: [8000, 48000], bases: [["電動ドリル", "Power Drill"], ["インパクトドライバー", "Impact Driver"], ["ディスクグラインダー", "Angle Grinder"]], specs: ["10.8V", "14.4V", "18V", "36V", "AC100V"] },
-    { code: "TLS-HND", name: "手工具", en: "Hand Tools", unit: "pcs", price: [600, 6800], bases: [["モンキーレンチ", "Adjustable Wrench"], ["ドライバーセット", "Screwdriver Set"], ["ペンチ", "Pliers"]], specs: ["150mm", "200mm", "250mm", "300mm", ["プロ仕様", "Pro"]] },
-    { code: "TLS-MSR", name: "測定工具", en: "Measuring Tools", unit: "pcs", price: [1200, 28000], bases: [["ノギス", "Caliper"], ["マイクロメーター", "Micrometer"], ["水平器", "Spirit Level"]], specs: ["100mm", "150mm", "200mm", "300mm", ["デジタル", "Digital"]] },
-  ]},
-  { code: "PKG", name: "梱包資材", en: "Packaging", subs: [
-    { code: "PKG-BOX", name: "段ボール", en: "Cardboard", unit: "pack", price: [800, 4800], bases: [["段ボール箱", "Cardboard Box"], ["宅配箱", "Shipping Box"], ["保管箱", "Storage Box"]], specs: [["60サイズ", "Size 60"], ["80サイズ", "Size 80"], ["100サイズ", "Size 100"], ["120サイズ", "Size 120"], ["140サイズ", "Size 140"]] },
-    { code: "PKG-TAP", name: "テープ", en: "Tape", unit: "roll", price: [120, 980], bases: [["OPPテープ", "OPP Tape"], ["クラフトテープ", "Kraft Tape"], ["布テープ", "Cloth Tape"]], specs: ["48mm×50m", "48mm×100m", "75mm×50m", ["透明 48mm", "Clear 48mm"], ["茶 48mm", "Brown 48mm"]] },
-    { code: "PKG-CSN", name: "緩衝材", en: "Cushioning", unit: "roll", price: [900, 6800], bases: [["エアキャップ", "Bubble Wrap"], ["ミラーマット", "Foam Sheet"], ["紙緩衝材", "Paper Cushion"]], specs: ["300mm×42m", "600mm×42m", "1200mm×42m", ["小巻", "Small roll"], ["大巻", "Large roll"]] },
-  ]},
-  { code: "SFT", name: "安全用品", en: "Safety Equipment", subs: [
-    { code: "SFT-GLV", name: "手袋", en: "Gloves", unit: "box", price: [400, 3800], bases: [["ニトリル手袋", "Nitrile Gloves"], ["作業用手袋", "Work Gloves"], ["耐切創手袋", "Cut-Resistant Gloves"]], specs: ["S", "M", "L", "XL", ["フリー", "Free size"]] },
-    { code: "SFT-HLM", name: "ヘルメット", en: "Helmets", unit: "pcs", price: [1800, 7800], bases: [["作業用ヘルメット", "Safety Helmet"], ["軽量ヘルメット", "Lightweight Helmet"], ["通気孔付ヘルメット", "Vented Helmet"]], specs: [["白", "White"], ["黄", "Yellow"], ["青", "Blue"], ["赤", "Red"], ["緑", "Green"]] },
-    { code: "SFT-EYE", name: "保護メガネ", en: "Eye Protection", unit: "pcs", price: [500, 4200], bases: [["保護メガネ", "Safety Glasses"], ["ゴーグル", "Goggles"], ["遮光メガネ", "Shading Glasses"]], specs: [["クリア", "Clear"], ["曇り止め", "Anti-fog"], ["スモーク", "Smoke"], ["一眼型", "Single lens"], ["二眼型", "Twin lens"]] },
+  { code: "TAB", name: "タブレット", en: "Tablets", subs: [
+    { code: "TAB-VTP",  name: "Vタブ Pro 12",   en: "V-Tab Pro 12",   maker: "MK01", price: 119800, screen: 12.4, weight: 610, release: "2025-11-14", origin: "JP" },
+    { code: "TAB-VT8",  name: "Vタブ 8",        en: "V-Tab 8",        maker: "MK01", price: 29800,  screen: 8.0,  weight: 320, release: "2023-09-08", origin: "VN" },
+    { code: "TAB-LP11", name: "リーフパッド 11",   en: "LeafPad 11",   maker: "MK02", price: 64800,  screen: 11.0, weight: 480, release: "2024-10-11", origin: "TW" },
+    { code: "TAB-LPM",  name: "リーフパッド mini", en: "LeafPad mini", maker: "MK02", price: 39800,  screen: 8.3,  weight: 300, release: "2026-04-17", origin: "CN" },
+    { code: "TAB-ST13", name: "ステラタブ 13",     en: "Stella Tab 13",   maker: "MK03", price: 99800, screen: 13.0, weight: 680, release: "2026-09-04", origin: "JP" },
+    { code: "TAB-STL",  name: "ステラタブ Lite",   en: "Stella Tab Lite", maker: "MK03", price: 32800, screen: 10.1, weight: 450, release: "2024-01-26", origin: "IN" },
+    { code: "TAB-WP11", name: "ウイングパッド 11",   en: "WingPad 11",   maker: "MK04", price: 54800, screen: 11.0, weight: 500, release: "2025-07-18", origin: "TH" },
+    { code: "TAB-WPK",  name: "ウイングパッド Kids", en: "WingPad Kids", maker: "MK04", price: 19800, screen: 8.0,  weight: 360, release: "2023-04-14", origin: "CN" },
   ]},
 ];
 
@@ -153,14 +151,14 @@ const PARTNERS = (() => {
       phone: `0${3 + Math.floor(r() * 6)}-${1000 + Math.floor(r() * 9000)}-${1000 + Math.floor(r() * 9000)}`,
       contact: ["佐々木", "高橋", "伊藤", "渡辺", "小林", "加藤", "吉田", "山口"][Math.floor(r() * 8)],
       payTerm: ["m1", "m1", "m2", "cash"][Math.floor(r() * 4)],
-      creditLimit: kind === "customer" ? (1 + Math.floor(r() * 50)) * 100000 : 0,
+      creditLimit: kind === "customer" ? (1 + Math.floor(r() * 50)) * 500000 : 0,
       status: r() < 0.9 ? "active" : "suspended",
     };
   };
   for (let i = 0; i < 25; i++) list.push(make("customer", i));
   for (let i = 0; i < 12; i++) list.push(make("supplier", i));
   // テスト用の固定値
-  list[0].status = "active"; list[0].creditLimit = 5000000;   // C-0001: 標準得意先
+  list[0].status = "active"; list[0].creditLimit = 30000000;  // C-0001: 標準得意先
   list[1].status = "suspended";                              // C-0002: 取引停止の得意先
   list[25].status = "active";                                // S-001: 標準仕入先
   return list;
@@ -179,82 +177,91 @@ const CARRIERS = [
   { code: "CR3", name: "港湾ロジ",     en: "Kowan Logi" },
 ];
 
-// ── 商品マスター（テスト用12件＋自動生成300件） ─────────────
+// ── 商品マスター（テスト用12件＋自動生成256件） ─────────────
 function _jan(seq) {
   const body = "4900" + String(seq).padStart(8, "0");
   let sum = 0;
   for (let i = 0; i < 12; i++) sum += Number(body[i]) * (i % 2 ? 3 : 1);
   return body + ((10 - sum % 10) % 10);
 }
+function _series(code) { for (const c of CATEGORIES) { const s = c.subs.find(x => x.code === code); if (s) return { cat: c, sub: s }; } return null; }
 
 const PRODUCTS = (() => {
   const r = _lcg(20260401);
-  const pick = a => a[Math.floor(r() * a.length)];
-  const round10 = v => Math.round(v / 10) * 10;
+  const round100 = v => Math.round(v / 100) * 100;
   const list = [];
   const base = (o) => Object.assign({
-    maker: "MK01", supplier: "S-001", origin: "JP", taxType: "standard", status: "active", lotControl: false,
-    leadTimeDays: 7, safetyStock: 50, weight: 100, registeredAt: "2024-04-01", updatedAt: "2026-09-01",
+    supplier: "S-001", origin: "JP", taxType: "standard", status: "active", lotControl: false,
+    leadTimeDays: 7, safetyStock: 50, weight: 180, registeredAt: "2024-04-01", updatedAt: "2026-09-01",
     remarks: "", remarksEn: "",
   }, o);
 
-  // テスト用の固定品目（P-00001〜P-00012）
-  const T = (code, name, nameEn, cat, sub, unit, unitPrice, cost, stock, o = {}) =>
-    list.push(base({ code, name, nameEn, category: cat, subCategory: sub, unit, unitPrice, cost, stock, jan: _jan(Number(code.slice(2))), ...o }));
-  T("P-00001", "バルテス 標準テスト品", "Valtes Standard Test Item", "MEC", "MEC-SCR", "box", 1000, 600, { WH01: 300, WH02: 200, WH03: 100 },
+  // テスト用の固定品目（P-00001〜P-00012）。カテゴリ・ブランドはシリーズから決まる
+  const T = (code, name, nameEn, series, storage, color, unit, unitPrice, cost, stock, o = {}) => {
+    const { cat, sub } = _series(series);
+    list.push(base({ code, name, nameEn, category: cat.code, subCategory: sub.code, maker: sub.maker, storage, color, unit, unitPrice, cost, stock,
+      jan: _jan(Number(code.slice(2))), lotControl: cat.code === "SPH", weight: sub.weight, ...o }));
+  };
+  T("P-00001", "バルテス 標準テスト品", "Valtes Standard Test Item", "SPH-VP15", "128", "BK", "unit", 1000, 600, { WH01: 300, WH02: 200, WH03: 100 },
     { remarks: "標準的な値のテスト用品目", remarksEn: "Test item with standard values" });
-  T("P-00002", "在庫ゼロ品", "Zero Stock Item", "ELC", "ELC-IC", "pcs", 2500, 1500, { WH01: 0, WH02: 0, WH03: 0 },
+  T("P-00002", "在庫ゼロ品", "Zero Stock Item", "TAB-VT8", "64", "WH", "unit", 2500, 1500, { WH01: 0, WH02: 0, WH03: 0 },
     { remarks: "全倉庫で在庫0（在庫なし）", remarksEn: "No stock in any warehouse" });
-  T("P-00003", "安全在庫割れ品", "Low Stock Item", "SFT", "SFT-GLV", "box", 1200, 700, { WH01: 10, WH02: 5, WH03: 0 },
+  T("P-00003", "安全在庫割れ品", "Low Stock Item", "SPH-LFS", "128", "BL", "unit", 1200, 700, { WH01: 10, WH02: 5, WH03: 0 },
     { safetyStock: 100, remarks: "有効在庫が安全在庫を下回る", remarksEn: "Available stock below safety stock" });
-  T("P-00004", "販売停止品", "Suspended Item", "OFS", "OFS-STA", "set", 800, 400, { WH01: 120, WH02: 0, WH03: 0 },
+  T("P-00004", "販売停止品", "Suspended Item", "SPH-STN", "64", "PK", "unit", 800, 400, { WH01: 120, WH02: 0, WH03: 0 },
     { status: "suspended", remarks: "販売停止中（受注不可）", remarksEn: "Suspended (cannot be ordered)" });
-  T("P-00005", "廃番品", "Discontinued Item", "TLS", "TLS-HND", "pcs", 3200, 1800, { WH01: 15, WH02: 0, WH03: 0 },
+  T("P-00005", "廃番品", "Discontinued Item", "TAB-STL", "64", "BK", "unit", 3200, 1800, { WH01: 15, WH02: 0, WH03: 0 },
     { status: "discontinued", registeredAt: "2022-04-01", remarks: "廃番（受注・発注不可）", remarksEn: "Discontinued (cannot be ordered)" });
-  T("P-00006", "高額品 精密測定ユニット", "High-Price Precision Measuring Unit", "TLS", "TLS-MSR", "unit", 9800000, 7200000, { WH01: 2, WH02: 1, WH03: 0 },
-    { safetyStock: 1, leadTimeDays: 60, origin: "DE", maker: "MK03", weight: 85000, remarks: "単価が7桁の高額品", remarksEn: "Item with 7-digit unit price" });
-  T("P-00007", "サンプル品（単価0円）", "Free Sample Item", "OFS", "OFS-FIL", "pack", 0, 0, { WH01: 500, WH02: 500, WH03: 500 },
+  T("P-00006", "高額品 法人向けタブレット100台セット", "High-Price Corporate Tablet Set (100 units)", "TAB-VTP", "512", "BK", "set", 9800000, 7200000, { WH01: 2, WH02: 1, WH03: 0 },
+    { safetyStock: 1, leadTimeDays: 60, weight: 61000, remarks: "単価が7桁の高額品", remarksEn: "Item with 7-digit unit price" });
+  T("P-00007", "サンプル品（単価0円）", "Free Sample Item", "SPH-WGG", "64", "WH", "unit", 0, 0, { WH01: 500, WH02: 500, WH03: 500 },
     { safetyStock: 0, remarks: "単価0円のサンプル品", remarksEn: "Free of charge sample" });
-  T("P-00008", "【長い品名テスト】超高耐久ステンレス製多機能ユニバーサルブラケット取付金具セット（屋内外兼用・防錆加工済み）",
-    "[Long Name Test] Ultra-Durable Stainless Multi-Purpose Universal Bracket Mounting Hardware Set (Indoor/Outdoor, Rust-Proof)",
-    "MEC", "MEC-SCR", "set", 4800, 2900, { WH01: 80, WH02: 60, WH03: 40 }, { remarks: "表示崩れ確認用の長い品名", remarksEn: "Long name for layout checks" });
-  T("P-00009", "記号テスト品 A&B <特殊> \"記号\" 'テスト'", "Symbol Test A&B <Special> \"Quote\" 'Test'", "PKG", "PKG-TAP", "roll", 450, 200, { WH01: 200, WH02: 200, WH03: 200 },
+  T("P-00008", "【長い品名テスト】超高耐久防水防塵ハイエンドフラッグシップ折りたたみ式スマートフォン大容量バッテリー搭載モデル（法人向け・保護ケース・強化ガラスフィルム同梱）",
+    "[Long Name Test] Ultra-Durable Waterproof Dustproof High-End Flagship Foldable Smartphone with Large Battery (Business, Case & Tempered Glass Included)",
+    "SPH-STU", "256", "BK", "unit", 4800, 2900, { WH01: 80, WH02: 60, WH03: 40 }, { remarks: "表示崩れ確認用の長い品名", remarksEn: "Long name for layout checks" });
+  T("P-00009", "記号テスト品 A&B <特殊> \"記号\" 'テスト'", "Symbol Test A&B <Special> \"Quote\" 'Test'", "SPH-LFX", "256", "WH", "unit", 450, 200, { WH01: 200, WH02: 200, WH03: 200 },
     { remarks: "HTMLエスケープ確認用（& < > \" '）", remarksEn: "For HTML escaping checks (& < > \" ')" });
-  T("P-00010", "軽減税率テスト品", "Reduced Tax Test Item", "OFS", "OFS-PAP", "box", 2160, 1300, { WH01: 100, WH02: 100, WH03: 100 },
+  T("P-00010", "軽減税率テスト品", "Reduced Tax Test Item", "TAB-LPM", "128", "PK", "unit", 2160, 1300, { WH01: 100, WH02: 100, WH03: 100 },
     { taxType: "reduced", remarks: "課税区分：軽減8%", remarksEn: "Tax type: reduced 8%" });
-  T("P-00011", "非課税テスト品", "Tax-Exempt Test Item", "OFS", "OFS-PAP", "box", 3000, 1800, { WH01: 100, WH02: 100, WH03: 100 },
+  T("P-00011", "非課税テスト品", "Tax-Exempt Test Item", "TAB-WPK", "64", "BL", "unit", 3000, 1800, { WH01: 100, WH02: 100, WH03: 100 },
     { taxType: "exempt", remarks: "課税区分：非課税", remarksEn: "Tax type: tax-exempt" });
-  T("P-00012", "ロット管理品 東京在庫のみ", "Lot-Controlled Item (Tokyo Only)", "ELC", "ELC-CAP", "bag", 1500, 900, { WH01: 250, WH02: 0, WH03: 0 },
-    { lotControl: true, origin: "VN", maker: "MK06", remarks: "ロット管理あり。在庫は東京中央倉庫のみ", remarksEn: "Lot-controlled. Stock only in Tokyo" });
+  T("P-00012", "ロット管理品 東京在庫のみ", "Lot-Controlled Item (Tokyo Only)", "SPH-WG1", "128", "BL", "unit", 1500, 900, { WH01: 250, WH02: 0, WH03: 0 },
+    { lotControl: true, origin: "VN", remarks: "ロット管理あり。在庫は東京中央倉庫のみ", remarksEn: "Lot-controlled. Stock only in Tokyo" });
 
-  // 自動生成（P-10001〜P-10300）
-  let seq = 10001;
+  // 自動生成（P-10001〜P-10256）：シリーズ16 × ストレージ4 × カラー4
+  // ステータス・在庫の傾向は (シリーズ番号 i, ストレージ番号 s, カラー番号 k) から規則的に決める。
+  // → どのシリーズ・ストレージ・カラー・ブランドにも「販売停止」「廃番」「安全在庫割れ」「在庫なし」「一部倉庫のみ在庫」が含まれる
+  let seq = 10001, i = 0;
   CATEGORIES.forEach(cat => cat.subs.forEach(sub => {
-    sub.bases.forEach(([bj, be]) => sub.specs.forEach(sp => {
-      const [sj, se] = Array.isArray(sp) ? sp : [sp, sp];
-      const unitPrice = round10(sub.price[0] + r() * (sub.price[1] - sub.price[0]));
-      const cost = round10(unitPrice * (0.45 + r() * 0.35));
+    STORAGES.forEach((st, s) => COLORS.forEach((col, k) => {
+      const unitPrice = sub.price + st.add;
+      const cost = round100(unitPrice * (0.6 + r() * 0.2));
+      const sv = (s + 2 * k + i) % 8;          // 0-5:有効 6:販売停止 7:廃番
+      const pv = (3 * s + k + 2 * i + 1) % 8;  // 0-4:通常 5:1倉庫のみ 6:少量（安全在庫割れ） 7:在庫なし
+      const only = (i + s + k) % WAREHOUSES.length;
       const stock = {};
-      // 在庫の傾向：約6%は全倉庫在庫なし、約12%は少量（安全在庫割れになりやすい）、残りは通常
-      const prof = r();
-      WAREHOUSES.forEach(w => { const x = r(); stock[w.code] = prof < 0.06 ? 0 : prof < 0.18 ? Math.floor(x * 25) : x < 0.15 ? 0 : Math.floor(x * 600); });
-      const st = r(), tx = r();
-      const reg = _addDays("2022-04-01", Math.floor(r() * 1640));
+      WAREHOUSES.forEach((w, n) => {
+        const x = r();
+        stock[w.code] = pv === 7 ? 0 : pv === 6 ? Math.floor(x * 6) : pv === 5 ? (n === only ? 40 + Math.floor(x * 120) : 0) : 30 + Math.floor(x * 170);
+      });
+      const reg = sub.release;
+      const upd = _addDays(reg, 7 + Math.floor(r() * 300));
       list.push(base({
-        code: `P-${seq}`, name: `${bj} ${sj}`, nameEn: `${be} ${se}`, category: cat.code, subCategory: sub.code, unit: sub.unit,
-        unitPrice, cost, stock, jan: _jan(seq),
-        maker: pick(MAKERS).code, supplier: `S-${String(1 + Math.floor(r() * 12)).padStart(3, "0")}`,
-        origin: r() < 0.55 ? "JP" : pick(ORIGINS).code,
-        taxType: tx < 0.88 ? "standard" : tx < 0.95 ? "reduced" : "exempt",
-        status: st < 0.86 ? "active" : st < 0.94 ? "suspended" : "discontinued",
-        lotControl: ["ELC", "SFT"].includes(cat.code) ? r() < 0.6 : r() < 0.15,
-        leadTimeDays: 3 + Math.floor(r() * 28),
-        safetyStock: (1 + Math.floor(r() * 30)) * 10,
-        weight: 10 + Math.floor(r() * 3000),
-        registeredAt: reg, updatedAt: _addDays(reg, Math.floor(r() * 120)) > "2026-10-31" ? "2026-10-31" : _addDays(reg, Math.floor(r() * 120)),
+        code: `P-${seq}`, name: `${sub.name} ${st.name} ${col.name}`, nameEn: `${sub.en} ${st.en} ${col.en}`,
+        category: cat.code, subCategory: sub.code, maker: sub.maker, storage: st.code, color: col.code,
+        unit: "unit", unitPrice, cost, stock, jan: _jan(seq),
+        supplier: `S-${String(1 + (i * 5 + s * 3 + k) % 12).padStart(3, "0")}`,
+        origin: sub.origin, taxType: "standard",
+        status: sv < 6 ? "active" : sv === 6 ? "suspended" : "discontinued",
+        lotControl: cat.code === "SPH",          // スマートフォンは製造番号（ロット）管理
+        leadTimeDays: 7 + (i % 4) * 7,
+        safetyStock: 30 + (i % 4) * 10,
+        weight: sub.weight,
+        registeredAt: reg, updatedAt: upd > "2026-10-31" ? "2026-10-31" : upd,
       }));
       seq++;
     }));
+    i++;
   }));
   return list;
 })();
@@ -283,7 +290,7 @@ const SAMPLE_TX = (() => {
     for (let k = 0; k < n * 3 && lines.length < n; k++) {
       const p = pick(sellable);
       if (lines.some(l => l.productCode === p.code)) continue;
-      const qty = 1 + Math.floor(r() * 20);
+      const qty = 1 + Math.floor(r() * 5);
       const key = p.code + "@" + wh;
       if (["ordered", "instructed"].includes(status) && (p.stock[wh] || 0) - (alloc[key] || 0) < qty) continue;
       if (["ordered", "instructed"].includes(status)) alloc[key] = (alloc[key] || 0) + qty;
@@ -309,6 +316,23 @@ const SAMPLE_TX = (() => {
       if (shipDate) lines.forEach(l => movements.push({ date: shipDate, type: "ship", productCode: l.productCode, warehouse: wh, qty: -l.qty, ref: shipNo, user: "wh01" }));
     }
   }
+
+  // 全数引当の受注（倉庫ごとに1件）：その倉庫だけに在庫がある品目の現在庫を全数引き当てる
+  // → 「現在庫はあるが有効在庫0＝在庫なし」の品目ができ、在庫状態「在庫なし」×「在庫のある倉庫」の組み合わせでもHITする
+  const bigCustomers = customers.filter(c => c.code !== "C-0001").sort((a, b) => b.creditLimit - a.creditLimit || a.code.localeCompare(b.code));
+  WAREHOUSES.forEach((w, n) => {
+    const p = sellable.find(x => x.code > "P-10000" && !alloc[x.code + "@" + w.code] &&
+      Object.keys(x.stock).every(k => (k === w.code) === (x.stock[k] > 0)));
+    if (!p) return;
+    const qty = p.stock[w.code];
+    alloc[p.code + "@" + w.code] = qty;
+    const date = _addDays("2026-10-26", n);
+    salesOrders.push({
+      no: `SO-2026-${String(salesOrders.length + 1).padStart(5, "0")}`, orderDate: date, customer: bigCustomers[n].code, warehouse: w.code,
+      requestedDate: _addDays(date, 30), status: "ordered", lines: [{ productCode: p.code, qty, unitPrice: p.unitPrice }], createdBy: "sales01",
+      customerRef: `PO-${80000 + n}`, note: "全数引当（有効在庫0）",
+    });
+  });
 
   // 発注 24件（2026/08/05〜）
   const poStatus = ["received", "received", "received", "ordered", "ordered", "cancelled"];

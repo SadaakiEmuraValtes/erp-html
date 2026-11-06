@@ -142,7 +142,10 @@ function optionsHtml(list, selected = "", emptyLabel = null) {
 }
 const OPTS = {
   category:    () => CATEGORIES.map(c => ({ value: c.code, label: `${c.code} ${L([c.name, c.en])}` })),
-  subCategory: cat => CATEGORIES.filter(c => !cat || c.code === cat).flatMap(c => c.subs.map(s => ({ value: s.code, label: `${s.code} ${L([s.name, s.en])}` }))),
+  // シリーズ（カテゴリ・ブランドで絞り込み）
+  subCategory: (cat, mk) => CATEGORIES.filter(c => !cat || c.code === cat).flatMap(c => c.subs.filter(s => !mk || s.maker === mk).map(s => ({ value: s.code, label: `${s.code} ${L([s.name, s.en])}` }))),
+  storage:     () => STORAGES.map(x => ({ value: x.code, label: ERP.label.storage(x.code) })),
+  color:       () => COLORS.map(x => ({ value: x.code, label: ERP.label.color(x.code) })),
   maker:       () => MAKERS.map(m => ({ value: m.code, label: `${m.code} ${L([m.name, m.en])}` })),
   supplier:    (activeOnly) => PARTNERS.filter(p => p.kind === "supplier" && (!activeOnly || p.status === "active")).map(p => ({ value: p.code, label: `${p.code} ${ERP.partnerName(p.code)}` })),
   customer:    (activeOnly) => PARTNERS.filter(p => p.kind === "customer" && (!activeOnly || p.status === "active")).map(p => ({ value: p.code, label: `${p.code} ${ERP.partnerName(p.code)}` })),

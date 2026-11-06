@@ -16,33 +16,31 @@
   <div id="page" class="hidden">
     <h1 class="page-title" id="page-title"><span data-i18n-en="🗂 Product Master">🗂 商品マスター</span>
       <span class="title-actions"><button class="btn btn-primary" id="btn-new-product" onclick="I18n.go('product.html?mode=new')">＋ <span data-i18n-en="New Product">商品登録</span></button></span></h1>
-    <p class="page-desc" data-i18n-en="Search products by any combination of conditions. Conditions are reflected in the URL (e.g. products.html?category=ELC&priceMin=1000).">条件を組み合わせて商品を検索します。検索条件はURLに反映されます（例：products.html?category=ELC&amp;priceMin=1000）。</p>
+    <p class="page-desc" data-i18n-en="Search smartphones and tablets by any combination of conditions (AND between fields, OR within multi-select storage / color / status). Conditions are reflected in the URL (e.g. products.html?category=SPH&maker=MK01&storages=128,256).">スマートフォン・タブレットを条件の組み合わせで検索します（項目間はAND、容量・カラー・ステータスの複数選択はOR）。検索条件はURLに反映されます（例：products.html?category=SPH&amp;maker=MK01&amp;storages=128,256）。</p>
 
     <form class="panel" id="search-form" onsubmit="event.preventDefault();search(1)">
       <div class="panel-head" data-i18n-en="🔍 Search Conditions">🔍 検索条件</div>
       <div class="panel-body">
         <div class="search-grid" id="search-grid">
+          <div class="form-group"><label for="s-keyword" data-i18n-en="Keyword (space = AND)">キーワード（スペース区切りでAND）</label><input type="text" id="s-keyword" name="keyword" placeholder="Vフォン 128GB ブラック"></div>
           <div class="form-group"><label for="s-code" data-i18n-en="Product code (partial)">品目コード（部分一致）</label><input type="text" id="s-code" name="code" placeholder="P-100"></div>
-          <div class="form-group"><label for="s-name" data-i18n-en="Name (partial, JA/EN)">品名（部分一致・英名も対象）</label><input type="text" id="s-name" name="name"></div>
-          <div class="form-group"><label for="s-category" data-i18n-en="Category">カテゴリ</label><select id="s-category" name="category" onchange="onCategory()"></select></div>
-          <div class="form-group"><label for="s-subCategory" data-i18n-en="Sub-category">サブカテゴリ</label><select id="s-subCategory" name="subCategory"></select></div>
-          <div class="form-group"><label for="s-maker" data-i18n-en="Maker">メーカー</label><select id="s-maker" name="maker"></select></div>
-          <div class="form-group"><label for="s-supplier" data-i18n-en="Supplier">仕入先</label><select id="s-supplier" name="supplier"></select></div>
-          <div class="form-group"><label for="s-unit" data-i18n-en="Unit">単位</label><select id="s-unit" name="unit"></select></div>
+          <div class="form-group"><label for="s-category" data-i18n-en="Category">カテゴリ</label><select id="s-category" name="category" onchange="onSeriesFilter()"></select></div>
+          <div class="form-group"><label for="s-maker" data-i18n-en="Brand">ブランド</label><select id="s-maker" name="maker" onchange="onSeriesFilter()"></select></div>
+          <div class="form-group"><label for="s-subCategory" data-i18n-en="Series">シリーズ</label><select id="s-subCategory" name="subCategory"></select></div>
           <div class="form-group" id="g-price"><label for="s-priceMin" data-i18n-en="Unit price (min - max)">販売単価（下限〜上限）</label>
-            <div class="range"><input type="number" id="s-priceMin" name="priceMin" min="0" placeholder="0"><span>〜</span><input type="number" id="s-priceMax" name="priceMax" min="0"></div>
+            <div class="range"><input type="number" id="s-priceMin" name="priceMin" min="0" step="1000" placeholder="0"><span>〜</span><input type="number" id="s-priceMax" name="priceMax" min="0" step="1000"></div>
             <span class="err" id="err-price"></span></div>
-          <div class="form-group"><label for="s-stockStatus" data-i18n-en="Stock status">在庫状態</label><select id="s-stockStatus" name="stockStatus"></select></div>
-          <div class="form-group"><label for="s-warehouse" data-i18n-en="Has stock in warehouse">在庫のある倉庫</label><select id="s-warehouse" name="warehouse"></select></div>
-          <div class="form-group"><label for="s-taxType" data-i18n-en="Tax type">課税区分</label><select id="s-taxType" name="taxType"></select></div>
-          <div class="form-group"><label for="s-lotControl" data-i18n-en="Lot control">ロット管理</label>
-            <select id="s-lotControl" name="lotControl"><option value="" data-i18n-en="All">すべて</option><option value="yes" data-i18n-en="Yes">あり</option><option value="no" data-i18n-en="No">なし</option></select></div>
-          <div class="form-group"><label for="s-origin" data-i18n-en="Country of origin">原産国</label><select id="s-origin" name="origin"></select></div>
-          <div class="form-group" id="g-reg"><label for="s-regFrom" data-i18n-en="Registered (from - to)">登録日（から〜まで）</label>
-            <div class="range"><input type="date" id="s-regFrom" name="regFrom"><span>〜</span><input type="date" id="s-regTo" name="regTo"></div>
-            <span class="err" id="err-reg"></span></div>
+          <div class="form-group"><span class="form-label" data-i18n-en="Storage">ストレージ容量</span>
+            <div class="check-group" id="s-storages"></div></div>
+          <div class="form-group"><span class="form-label" data-i18n-en="Color">カラー</span>
+            <div class="check-group" id="s-colors"></div></div>
           <div class="form-group"><span class="form-label" data-i18n-en="Status">ステータス</span>
             <div class="check-group" id="s-statuses"></div></div>
+          <div class="form-group"><label for="s-stockStatus" data-i18n-en="Stock status">在庫状態</label><select id="s-stockStatus" name="stockStatus"></select></div>
+          <div class="form-group"><label for="s-warehouse" data-i18n-en="Has stock in warehouse">在庫のある倉庫</label><select id="s-warehouse" name="warehouse"></select></div>
+          <div class="form-group" id="g-reg"><label for="s-regFrom" data-i18n-en="Release date (from - to)">発売日（から〜まで）</label>
+            <div class="range"><input type="date" id="s-regFrom" name="regFrom"><span>〜</span><input type="date" id="s-regTo" name="regTo"></div>
+            <span class="err" id="err-reg"></span></div>
           <div class="form-group"><label for="s-sort" data-i18n-en="Sort">並び順</label><select id="s-sort" name="sort"></select></div>
         </div>
         <div class="form-actions">
@@ -67,11 +65,11 @@
   </div>
 
   <script>
-    const FIELDS = ["code", "name", "category", "subCategory", "maker", "supplier", "unit", "priceMin", "priceMax", "stockStatus", "warehouse", "taxType", "lotControl", "origin", "regFrom", "regTo", "sort", "pageSize"];
-    const CHECKS = ["statuses"];
+    const FIELDS = ["keyword", "code", "category", "maker", "subCategory", "priceMin", "priceMax", "stockStatus", "warehouse", "regFrom", "regTo", "sort", "pageSize"];
+    const CHECKS = ["storages", "colors", "statuses"];
     const SORTS = [["code_asc", "品目コード 昇順", "Code (A-Z)"], ["code_desc", "品目コード 降順", "Code (Z-A)"], ["name_asc", "品名 昇順", "Name"],
       ["price_asc", "販売単価 安い順", "Price: low to high"], ["price_desc", "販売単価 高い順", "Price: high to low"],
-      ["stock_asc", "有効在庫 少ない順", "Available: low to high"], ["stock_desc", "有効在庫 多い順", "Available: high to low"], ["reg_desc", "登録日 新しい順", "Newest registered"]];
+      ["stock_asc", "有効在庫 少ない順", "Available: low to high"], ["stock_desc", "有効在庫 多い順", "Available: high to low"], ["reg_desc", "発売日 新しい順", "Newest release"]];
     let rows = [], page = 1;
 
     // 一覧の列定義（data-col / data-value に入る値＝CSV の値）
@@ -79,21 +77,18 @@
       { key: "code", label: ["品目コード", "Code"], value: r => r.code, html: r => `<a href="${I18n.urlWith("product.html?code=" + r.code)}" id="link-product-${r.code}">${r.code}</a>`, cls: "nowrap" },
       { key: "name", label: ["品名", "Name"], value: r => r.name, html: r => esc(t(r.name, r.nameEn)), cls: "cell-name" },
       { key: "category", label: ["カテゴリ", "Category"], value: r => r.category, html: r => esc(ERP.label.category(r.category)), cls: "nowrap" },
-      { key: "subCategory", label: ["サブカテゴリ", "Sub-category"], value: r => r.subCategory, html: r => esc(ERP.label.subCategory(r.subCategory)), cls: "nowrap" },
-      { key: "maker", label: ["メーカー", "Maker"], value: r => r.maker, html: r => esc(ERP.label.maker(r.maker)), cls: "nowrap" },
-      { key: "supplier", label: ["仕入先", "Supplier"], value: r => r.supplier, cls: "nowrap" },
-      { key: "unit", label: ["単位", "Unit"], value: r => r.unit, html: r => esc(ERP.label.unit(r.unit)), cls: "center" },
+      { key: "maker", label: ["ブランド", "Brand"], value: r => r.maker, html: r => esc(ERP.label.maker(r.maker)), cls: "nowrap" },
+      { key: "subCategory", label: ["シリーズ", "Series"], value: r => r.subCategory, html: r => esc(ERP.label.subCategory(r.subCategory)), cls: "nowrap" },
+      { key: "storage", label: ["容量", "Storage"], value: r => r.storage, html: r => esc(ERP.label.storage(r.storage)), cls: "nowrap" },
+      { key: "color", label: ["カラー", "Color"], value: r => r.color, html: r => esc(ERP.label.color(r.color)), cls: "nowrap" },
       { key: "unitPrice", label: ["販売単価", "Unit price"], value: r => r.unitPrice, html: r => yen(r.unitPrice), cls: "num" },
       { key: "cost", label: ["標準原価", "Cost"], value: r => r.cost, html: r => yen(r.cost), cls: "num" },
       { key: "marginRate", label: ["粗利率", "Margin"], value: r => r.marginRate.toFixed(1), html: r => r.marginRate.toFixed(1) + "%", cls: "num" },
-      { key: "taxType", label: ["課税区分", "Tax"], value: r => r.taxType, html: r => esc(ERP.label.tax(r.taxType)), cls: "nowrap" },
       { key: "totalStock", label: ["総在庫", "On hand"], value: r => r.totalStock, html: r => num(r.totalStock), cls: "num" },
       { key: "available", label: ["有効在庫", "Available"], value: r => r.available, html: r => num(r.available), cls: "num" },
       { key: "stockStatus", label: ["在庫状態", "Stock"], value: r => r.stockStatus, html: r => badge("stockStatus", r.stockStatus) },
-      { key: "lotControl", label: ["ロット", "Lot"], value: r => r.lotControl ? "yes" : "no", html: r => r.lotControl ? "✓" : "-", cls: "center" },
-      { key: "origin", label: ["原産国", "Origin"], value: r => r.origin, html: r => esc(ERP.label.origin(r.origin)), cls: "nowrap" },
       { key: "status", label: ["ステータス", "Status"], value: r => r.status, html: r => badge("status", r.status) },
-      { key: "registeredAt", label: ["登録日", "Registered"], value: r => r.registeredAt, html: r => dt(r.registeredAt), cls: "nowrap" },
+      { key: "registeredAt", label: ["発売日", "Released"], value: r => r.registeredAt, html: r => dt(r.registeredAt), cls: "nowrap" },
     ];
 
     document.addEventListener("DOMContentLoaded", () => {
@@ -102,33 +97,34 @@
       const all = t("すべて", "All");
       document.getElementById("s-category").innerHTML = optionsHtml(OPTS.category(), "", all);
       document.getElementById("s-maker").innerHTML = optionsHtml(OPTS.maker(), "", all);
-      document.getElementById("s-supplier").innerHTML = optionsHtml(OPTS.supplier(), "", all);
-      document.getElementById("s-unit").innerHTML = optionsHtml(OPTS.unit(), "", all);
       document.getElementById("s-stockStatus").innerHTML = optionsHtml(OPTS.stockStatus(), "", all);
       document.getElementById("s-warehouse").innerHTML = optionsHtml(OPTS.warehouse(), "", t("指定なし", "Any"));
-      document.getElementById("s-taxType").innerHTML = optionsHtml(OPTS.tax(), "", all);
-      document.getElementById("s-origin").innerHTML = optionsHtml(OPTS.origin(), "", all);
       document.getElementById("s-sort").innerHTML = optionsHtml(SORTS.map(s => ({ value: s[0], label: t(s[1], s[2]) })));
       document.getElementById("s-statuses").innerHTML = Object.keys(PRODUCT_STATUS).map(k =>
         `<label for="s-status-${k}"><input type="checkbox" name="s-statuses" id="s-status-${k}" value="${k}">${ERP.label.status(k)}</label>`).join("");
-      onCategory();
+      document.getElementById("s-storages").innerHTML = STORAGES.map(x =>
+        `<label for="s-storage-${x.code}"><input type="checkbox" name="s-storages" id="s-storage-${x.code}" value="${x.code}">${ERP.label.storage(x.code)}</label>`).join("");
+      document.getElementById("s-colors").innerHTML = COLORS.map(x =>
+        `<label for="s-color-${x.code}"><input type="checkbox" name="s-colors" id="s-color-${x.code}" value="${x.code}">${ERP.label.color(x.code)}</label>`).join("");
+      onSeriesFilter();
       search(fillSearchForm(FIELDS, CHECKS));
     });
 
-    function onCategory() {
+    // シリーズの選択肢をカテゴリ・ブランドで絞る（選択中のシリーズが対象外になったら「すべて」に戻る）
+    function onSeriesFilter() {
       const sel = document.getElementById("s-subCategory"), cur = sel.value;
-      sel.innerHTML = optionsHtml(OPTS.subCategory(document.getElementById("s-category").value), cur, t("すべて", "All"));
+      sel.innerHTML = optionsHtml(OPTS.subCategory(document.getElementById("s-category").value, document.getElementById("s-maker").value), cur, t("すべて", "All"));
     }
 
     function clearForm() {
       document.getElementById("search-form").reset();
-      onCategory();
+      onSeriesFilter();
       search(1);
     }
 
     function criteria() {
       const c = readSearchForm(FIELDS, CHECKS);
-      return { c, query: { ...c, statuses: c.statuses ? c.statuses.split(",") : [] } };
+      return { c, query: c };
     }
 
     function search(p) {
