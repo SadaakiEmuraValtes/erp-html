@@ -114,7 +114,7 @@
         ["発注 → 入荷処理で入荷倉庫の在庫が増える。発注済のみキャンセル可。", "Purchase order → Goods receipt increases stock. Only open orders can be cancelled."],
         ["在庫調整は0以外の整数。調整後の在庫が引当数を下回る調整は不可。", "Adjustment must be a non-zero integer and cannot go below allocated."],
         ["在庫状態：有効在庫0以下＝在庫なし／安全在庫未満＝安全在庫割れ／それ以外＝在庫あり（倉庫別は安全在庫÷3 切り上げで判定）。", "Stock status: ≤0 out / below safety stock low / otherwise in stock (per warehouse uses safety ÷ 3, rounded up)."],
-        ["商品登録：品目コード P-00000形式・重複不可、標準原価は販売単価以下、JANは13桁。", "Product: code P-00000 unique, cost ≤ unit price, JAN 13 digits."],
+        ["商品登録：入力は11項目。品目コード P-00000形式・重複不可、標準原価は販売単価以下。英名・JAN・原産国・重量・ロット管理などは自動設定（編集時は維持）。", "Product: 11 input fields. Code P-00000 unique, cost ≤ unit price. English name, JAN, origin, weight, lot control etc. are set automatically (kept on edit)."],
       ].map(r => `<li style="margin-bottom:4px">${t(r[0], r[1])}</li>`).join("");
     });
 

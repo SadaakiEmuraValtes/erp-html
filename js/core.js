@@ -233,33 +233,38 @@ const ERP = (() => {
     else if (d.maker && subCategory(d.subCategory).maker !== d.maker) e.subCategory = _t("選択したブランドのシリーズではありません", "This series does not belong to the selected brand");
     if (!storage(d.storage)) e.storage = _t("ストレージ容量を選択してください", "Select a storage capacity");
     if (!color(d.color)) e.color = _t("カラーを選択してください", "Select a color");
-    if (!d.unit) e.unit = _t("単位を選択してください", "Select a unit");
+    if (!PRODUCT_STATUS[d.status]) e.status = _t("ステータスを選択してください", "Select a status");
     if (!int(d.unitPrice) || Number(d.unitPrice) > 99999999) e.unitPrice = _t("販売単価は0〜99,999,999の整数で入力してください", "Unit price must be an integer 0-99,999,999");
     if (!int(d.cost) || Number(d.cost) > 99999999) e.cost = _t("標準原価は0〜99,999,999の整数で入力してください", "Cost must be an integer 0-99,999,999");
     else if (int(d.unitPrice) && Number(d.cost) > Number(d.unitPrice) && Number(d.unitPrice) > 0) e.cost = _t("標準原価が販売単価を上回っています", "Cost exceeds unit price");
     if (!int(d.safetyStock) || Number(d.safetyStock) > 99999) e.safetyStock = _t("安全在庫は0〜99,999の整数で入力してください", "Safety stock must be an integer 0-99,999");
-    if (!int(d.leadTimeDays) || Number(d.leadTimeDays) < 1 || Number(d.leadTimeDays) > 365) e.leadTimeDays = _t("リードタイムは1〜365の整数で入力してください", "Lead time must be an integer 1-365");
-    if (!int(d.weight) || Number(d.weight) > 9999999) e.weight = _t("重量は0〜9,999,999の整数（g）で入力してください", "Weight must be an integer (g)");
-    if (d.jan && !/^\d{13}$/.test(d.jan)) e.jan = _t("JANコードは13桁の数字で入力してください", "JAN code must be 13 digits");
     return e;
   }
+
+  // 登録フォームで入力する項目（11項目）。それ以外（英名・仕入先・単位・課税区分・原産国・JAN・リードタイム・重量・ロット管理・備考）は
+  // 新規登録時にシリーズ等から自動設定し、編集時は保存済みの値を維持する
+  const PRODUCT_FORM_FIELDS = ["code", "status", "name", "category", "maker", "subCategory", "storage", "color", "unitPrice", "cost", "safetyStock"];
 
   function saveProduct(d, isNew) {
     if (!can("product_edit")) return { ok: false, errors: { _: _t("権限がありません", "Permission denied") } };
     const errors = validateProduct(d, isNew);
     if (Object.keys(errors).length) return { ok: false, errors };
-    const fields = ["name", "nameEn", "category", "subCategory", "maker", "storage", "color", "supplier", "unit", "origin", "taxType", "status", "jan", "remarks"];
-    const nums = ["unitPrice", "cost", "safetyStock", "leadTimeDays", "weight"];
+    const sub = subCategory(d.subCategory), st = storage(d.storage), co = color(d.color);
     let p = isNew ? null : product(d.code);
     if (!isNew && !p) return { ok: false, errors: { _: _t("品目が見つかりません", "Product not found") } };
     if (isNew) {
-      p = { code: d.code, stock: Object.fromEntries(WAREHOUSES.map(w => [w.code, 0])), registeredAt: today(), remarksEn: "" };
+      p = {
+        code: d.code, stock: Object.fromEntries(WAREHOUSES.map(w => [w.code, 0])), registeredAt: today(),
+        supplier: "S-001", unit: "unit", taxType: "standard", origin: sub.origin, jan: _jan(Number(d.code.slice(2))),
+        leadTimeDays: 7, weight: sub.weight, lotControl: d.category === "SPH", remarks: "", remarksEn: "",
+      };
       S.products.push(p);
     }
-    fields.forEach(f => { p[f] = (d[f] ?? "").toString().trim(); });
-    if (!p.nameEn) p.nameEn = p.name;
-    nums.forEach(f => { p[f] = Number(d[f]); });
-    p.lotControl = !!d.lotControl;
+    const nameChanged = isNew || p.name !== String(d.name).trim();
+    ["status", "name", "category", "maker", "subCategory", "storage", "color"].forEach(f => { p[f] = String(d[f] ?? "").trim(); });
+    ["unitPrice", "cost", "safetyStock"].forEach(f => { p[f] = Number(d[f]); });
+    p.maker = sub.maker;   // ブランドはシリーズで決まる（フォームで未選択でもよい）
+    if (nameChanged) p.nameEn = `${sub.en} ${st.en} ${co.en}`;   // 英名はシリーズ・容量・カラーから自動生成（品名を変えたときのみ）
     p.updatedAt = today();
     _save(LS.PRODUCTS);
     return { ok: true, product: p };
@@ -561,7 +566,7 @@ const ERP = (() => {
     LS, init, resetAll,
     login, logout, currentUser, can, userName, roleName,
     product, partner, warehouse, category, subCategory, maker, origin, storage, color, productName, partnerName, label,
-    inventory, totals, productRow, searchProducts, PRODUCT_SORTS, validateProduct, saveProduct,
+    inventory, totals, productRow, searchProducts, PRODUCT_SORTS, PRODUCT_FORM_FIELDS, validateProduct, saveProduct,
     orderAmounts, searchSalesOrders, salesOrder, creditBalance, createSalesOrder, instructShipment, cancelSalesOrder,
     searchShipments, shipment, confirmShipment, confirmDelivery,
     searchPurchaseOrders, purchaseOrder, createPurchaseOrder, receivePurchaseOrder, cancelPurchaseOrder,

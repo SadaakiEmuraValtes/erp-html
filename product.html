@@ -18,8 +18,7 @@
   <script>
     // ?code=P-00001 → 詳細 / ?mode=edit&code=P-00001 → 編集 / ?mode=new → 新規登録
     const mode = qp("mode") || "view", code = qp("code");
-    const FORM_FIELDS = ["code", "name", "nameEn", "category", "subCategory", "maker", "storage", "color", "supplier", "unit", "unitPrice", "cost", "taxType", "status",
-      "safetyStock", "leadTimeDays", "weight", "origin", "jan", "remarks"];
+    const FORM_FIELDS = ERP.PRODUCT_FORM_FIELDS;   // 11項目
 
     document.addEventListener("DOMContentLoaded", () => {
       const isNew = mode === "new", isEdit = mode === "edit";
@@ -121,12 +120,13 @@
 
     // ══════════ 登録・編集フォーム ══════════
     function renderForm(p, isNew) {
-      const v = p || { code: "", name: "", nameEn: "", category: "", subCategory: "", maker: "MK01", storage: "", color: "", supplier: "S-001", unit: "unit", unitPrice: "", cost: "",
-        taxType: "standard", status: "active", safetyStock: 0, leadTimeDays: 7, weight: 0, origin: "JP", jan: "", remarks: "", lotControl: false };
+      const v = p || { code: "", name: "", category: "", subCategory: "", maker: "", storage: "", color: "", unitPrice: "", cost: "", status: "active", safetyStock: 0 };
+      autoName = isNew ? "" : null;   // 新規時のみ、シリーズ・容量・カラーから品名を自動入力する
       const g = (key, label, input, req = false, full = false) => `<div class="form-group${full ? " full" : ""}" id="g-${key}">
         <label for="f-${key}" class="${req ? "req" : ""}">${label}</label>${input}<span class="err" id="err-${key}"></span></div>`;
       const txt = (key, val, attrs = "") => `<input type="text" id="f-${key}" name="${key}" value="${esc(val)}" ${attrs}>`;
-      const sel = (key, opts, val, empty) => `<select id="f-${key}" name="${key}" ${key === "category" || key === "maker" ? 'onchange="onFormCategory()"' : ""}>${optionsHtml(opts, val, empty)}</select>`;
+      const ON = { category: "onFormCategory()", maker: "onFormCategory()", subCategory: "onFormSpec()", storage: "onFormSpec()", color: "onFormSpec()" };
+      const sel = (key, opts, val, empty) => `<select id="f-${key}" name="${key}" ${ON[key] ? `onchange="${ON[key]}"` : ""}>${optionsHtml(opts, val, empty)}</select>`;
       document.getElementById("page").innerHTML = `
         <h1 class="page-title" id="page-title">${isNew ? t("➕ 商品登録", "➕ New Product") : `✏️ ${t("商品編集", "Edit Product")} <span class="mono">${p.code}</span>`}</h1>
         <div id="form-errors" class="alert alert-danger hidden" role="alert"></div>
@@ -134,27 +134,21 @@
           <div class="form-grid">
             ${g("code", t("品目コード（P-00000形式）", "Product code (P-00000)"), txt("code", v.code, isNew ? 'placeholder="P-20001"' : "readonly"), true)}
             ${g("status", t("ステータス", "Status"), sel("status", OPTS.status(), v.status), true)}
-            ${g("name", t("品名", "Name"), txt("name", v.name, 'maxlength="120"'), true, true)}
-            ${g("nameEn", t("品名（英語）", "Name (English)"), txt("nameEn", v.nameEn), false, true)}
             ${g("category", t("カテゴリ", "Category"), sel("category", OPTS.category(), v.category, t("選択してください", "Select")), true)}
-            ${g("maker", t("ブランド", "Brand"), sel("maker", OPTS.maker(), v.maker))}
+            ${g("maker", t("ブランド", "Brand"), sel("maker", OPTS.maker(), v.maker, t("すべて", "All")))}
             ${g("subCategory", t("シリーズ", "Series"), sel("subCategory", OPTS.subCategory(v.category, v.maker), v.subCategory, t("選択してください", "Select")), true)}
             ${g("storage", t("ストレージ容量", "Storage"), sel("storage", OPTS.storage(), v.storage, t("選択してください", "Select")), true)}
             ${g("color", t("カラー", "Color"), sel("color", OPTS.color(), v.color, t("選択してください", "Select")), true)}
-            ${g("supplier", t("仕入先", "Supplier"), sel("supplier", OPTS.supplier(), v.supplier))}
-            ${g("unit", t("単位", "Unit"), sel("unit", OPTS.unit(), v.unit), true)}
-            ${g("taxType", t("課税区分", "Tax type"), sel("taxType", OPTS.tax(), v.taxType), true)}
+            ${g("name", t("品名", "Name"), txt("name", v.name, `maxlength="120"${isNew ? ` placeholder="${t("シリーズ・容量・カラーを選ぶと自動入力", "Filled from series, storage and color")}"` : ""}`), true, true)}
             ${g("unitPrice", t("販売単価（円）", "Unit price (JPY)"), txt("unitPrice", v.unitPrice, 'inputmode="numeric"'), true)}
             ${g("cost", t("標準原価（円）", "Cost (JPY)"), txt("cost", v.cost, 'inputmode="numeric"'), true)}
             ${g("safetyStock", t("安全在庫", "Safety stock"), txt("safetyStock", v.safetyStock, 'inputmode="numeric"'), true)}
-            ${g("leadTimeDays", t("調達リードタイム（日）", "Lead time (days)"), txt("leadTimeDays", v.leadTimeDays, 'inputmode="numeric"'), true)}
-            ${g("weight", t("重量（g）", "Weight (g)"), txt("weight", v.weight, 'inputmode="numeric"'), true)}
-            ${g("origin", t("原産国", "Origin"), sel("origin", OPTS.origin(), v.origin))}
-            ${g("jan", t("JANコード（13桁）", "JAN code (13 digits)"), txt("jan", v.jan, 'inputmode="numeric" maxlength="13"'))}
-            <div class="form-group" id="g-lotControl"><span class="form-label">${t("ロット（製造番号）管理", "Lot (serial) control")}</span>
-              <label class="check-group" for="f-lotControl"><input type="checkbox" id="f-lotControl" name="lotControl" ${v.lotControl ? "checked" : ""}> ${t("ロット管理する", "Lot-controlled")}</label></div>
-            ${g("remarks", t("備考", "Remarks"), `<textarea id="f-remarks" name="remarks" rows="3">${esc(v.remarks)}</textarea>`, false, true)}
           </div>
+          <p class="muted mt-16" id="auto-fields-note">${isNew
+            ? t("英名・JANコード・原産国・重量・ロット管理はシリーズ等から自動設定されます（仕入先 S-001／単位 台／課税区分 標準10%／リードタイム 7日）。",
+                "English name, JAN, origin, weight and lot control are set automatically from the series (supplier S-001 / unit / standard 10% tax / lead time 7 days).")
+            : t("英名・仕入先・単位・課税区分・原産国・JAN・リードタイム・重量・ロット管理・備考は登録時の値を維持します（品名を変えた場合は英名を自動更新）。",
+                "Other attributes keep their registered values (the English name is regenerated if you change the name).")}</p>
           <div class="form-actions">
             <a class="btn btn-secondary" id="btn-cancel" href="${I18n.urlWith(isNew ? "products.html" : "product.html?code=" + p.code)}">${t("キャンセル", "Cancel")}</a>
             <button type="submit" class="btn btn-primary" id="btn-save">${isNew ? t("登録する", "Register") : t("保存する", "Save")}</button>
@@ -165,12 +159,25 @@
     function onFormCategory() {
       const sel = document.getElementById("f-subCategory"), cur = sel.value;
       sel.innerHTML = optionsHtml(OPTS.subCategory(document.getElementById("f-category").value, document.getElementById("f-maker").value), cur, t("選択してください", "Select"));
+      onFormSpec();
+    }
+
+    // シリーズを選んだらブランドを合わせ、新規時は品名を「シリーズ 容量 カラー」で自動入力（手で書き換えた品名は上書きしない）
+    let autoName = null;
+    function onFormSpec() {
+      const v = id => document.getElementById("f-" + id).value;
+      const sub = ERP.subCategory(v("subCategory"));
+      if (sub && !v("maker")) document.getElementById("f-maker").value = sub.maker;
+      if (autoName === null) return;
+      const st = ERP.storage(v("storage")), co = ERP.color(v("color")), nameEl = document.getElementById("f-name");
+      if (!sub || !st || !co || (nameEl.value && nameEl.value !== autoName)) return;
+      autoName = `${sub.name} ${st.name} ${co.name}`;
+      nameEl.value = autoName;
     }
 
     function save(isNew) {
       const d = {};
       FORM_FIELDS.forEach(f => { d[f] = document.getElementById("f-" + f).value.trim(); });
-      d.lotControl = document.getElementById("f-lotControl").checked;
       const res = ERP.saveProduct(d, isNew);
       showErrors(res.ok ? {} : res.errors, FORM_FIELDS);
       if (!res.ok) { window.scrollTo({ top: 0, behavior: "smooth" }); return; }
