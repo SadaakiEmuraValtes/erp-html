@@ -60,6 +60,9 @@ button, input, select, textarea { font-family: inherit; font-size: 14px; }
 .menu-item:hover { background: var(--gray-lt); text-decoration: none; }
 .menu-item.active { background: var(--primary-lt); color: var(--primary); font-weight: 700; border-left-color: var(--primary); }
 .menu-item.no-perm { color: #A0A4A8; }
+.menu-lock { margin-left: auto; font-size: 11px; opacity: .7; }
+.guest-notice { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.guest-notice .btn { margin-left: auto; }
 .menu-icon { width: 18px; text-align: center; }
 .erp-main { flex: 1; min-width: 0; padding: 18px 26px 40px; }
 body.no-menu .erp-main { display: flex; justify-content: center; align-items: flex-start; padding-top: 48px; }

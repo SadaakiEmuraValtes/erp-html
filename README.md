@@ -18,7 +18,14 @@ SAP のような基幹業務システムを簡略化したデモです。**左�
 python -m http.server 8080   # または npx serve .
 ```
 
-ブラウザで `http://localhost:8080` を開くとログイン画面になります（全画面ログイン必須）。`file://` では localStorage が制限される場合があります。
+ブラウザで `http://localhost:8080` を開くと**ダッシュボード（TOP）**が表示されます。
+
+- **未ログイン（ゲスト）で見られるのは ダッシュボードとヘルプのみ**。ダッシュボードの「あなたの権限」はすべて「不可」になります
+- それ以外の機能（左メニューの 🔒 付き項目・KPI・一覧のリンク、URL直接アクセス）は**ログイン画面へ遷移**し、ログイン後に元の画面へ戻ります（`login.html?next=…`）
+- ログアウト後はゲストとしてダッシュボードに戻ります
+- 判別用：`body[@data-auth="guest"|"user"]`、ゲストのヘッダー `#header-guest` `#btn-header-login`、ダッシュボードの `#guest-notice` `#btn-guest-login`、ログインが必要なメニュー `a.menu-item.need-login`（`@data-login-required="true"`）、ログイン画面の `#login-required` `#link-back-top`
+
+`file://` では localStorage が制限される場合があります。
 
 ---
 

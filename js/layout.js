@@ -10,8 +10,9 @@ const qp = name => new URLSearchParams(window.location.search).get(name);
 
 // ── 左メニュー定義（id は #menu-{id}） ──────────────────────
 const MENU = [
+  // guest: true の画面はログインなしで閲覧できる（それ以外は未ログインだとログイン画面へ）
   { group: ["ホーム", "Home"], items: [
-    { id: "dashboard", href: "index.html", icon: "📊", label: ["ダッシュボード", "Dashboard"] },
+    { id: "dashboard", href: "index.html", icon: "📊", label: ["ダッシュボード", "Dashboard"], guest: true },
   ]},
   { group: ["販売管理", "Sales"], items: [
     { id: "sales-orders",    href: "sales-orders.html", icon: "🧾", label: ["受注一覧", "Sales Orders"] },
@@ -34,7 +35,7 @@ const MENU = [
     { id: "partners",    href: "partners.html", icon: "🏢", label: ["取引先マスター", "Business Partners"] },
   ]},
   { group: ["その他", "Other"], items: [
-    { id: "help", href: "help.html", icon: "❔", label: ["ヘルプ・テストデータ", "Help & Test Data"] },
+    { id: "help", href: "help.html", icon: "❔", label: ["ヘルプ・テストデータ", "Help & Test Data"], guest: true },
   ]},
 ];
 
@@ -57,7 +58,9 @@ function buildHeader() {
         <span><span id="header-user-name">${esc(t(u.name, u.nameEn))}</span><span class="header-role" id="header-user-role">${ERP.roleName(u.role)}</span></span>
       </span>` : ""}
     <button id="btn-lang-toggle" class="btn-lang" onclick="toggleLang()">${t("EN", "日本語")}</button>
-    ${u ? `<button id="btn-logout" class="btn-header" onclick="logout()">${t("ログアウト", "Log Out")}</button>` : ""}
+    ${u ? `<button id="btn-logout" class="btn-header" onclick="logout()">${t("ログアウト", "Log Out")}</button>`
+        : `<span class="header-user" id="header-guest" data-role="guest"><span class="header-avatar">👤</span><span>${t("ゲスト", "Guest")}<span class="header-role">${t("未ログイン", "Not logged in")}</span></span></span>
+           <a id="btn-header-login" class="btn-header" href="${I18n.urlWith(loginUrl())}">${t("ログイン", "Log In")}</a>`}
   </div>
 </header>`;
 }
@@ -69,9 +72,13 @@ function buildSideMenu(active) {
     <div class="menu-group" id="menu-group-${gi + 1}">
       <div class="menu-group-title">${L(g.group)}</div>
       ${g.items.map(it => {
-        const allowed = !it.perm || ERP.can(it.perm);
-        return `<a href="${I18n.urlWith(it.href)}" id="menu-${it.id}" data-menu="${it.id}" class="menu-item${active === it.id ? " active" : ""}${allowed ? "" : " no-perm"}"
-          ${allowed ? "" : `title="${t("権限がありません（閲覧のみ）", "No permission (view only)")}"`}><span class="menu-icon">${it.icon}</span>${L(it.label)}</a>`;
+        const guest = !ERP.currentUser();
+        const locked = guest && !it.guest;   // 未ログイン：ログインが必要な機能（クリックでログイン画面 → ログイン後にその画面へ）
+        const allowed = !locked && (!it.perm || ERP.can(it.perm));
+        const title = locked ? t("ログインが必要です", "Login required") : allowed ? "" : t("権限がありません（閲覧のみ）", "No permission (view only)");
+        return `<a href="${I18n.urlWith(locked ? loginUrl(it.href) : it.href)}" id="menu-${it.id}" data-menu="${it.id}" data-login-required="${!it.guest}"
+          class="menu-item${active === it.id ? " active" : ""}${allowed ? "" : " no-perm"}${locked ? " need-login" : ""}"
+          ${title ? `title="${title}"` : ""}><span class="menu-icon">${it.icon}</span>${L(it.label)}${locked ? `<span class="menu-lock" aria-hidden="true">🔒</span>` : ""}</a>`;
       }).join("")}
     </div>`).join("")}
 </nav>`;
@@ -88,13 +95,26 @@ function buildFooter() {
 <div id="toast-container"></div>`;
 }
 
-// buildPage({ title, menu, crumbs: [[ja,en,href?], ...], requireLogin=true })
-function buildPage({ title, menu = "", crumbs = [], requireLogin = true }) {
+// ログイン画面のURL（next：ログイン後に戻る画面。省略時は現在の画面）
+function loginUrl(next) {
+  if (next === undefined) {
+    const params = new URLSearchParams(location.search); params.delete("lang");
+    const q = params.toString();
+    next = (location.pathname.split("/").pop() || "index.html") + (q ? "?" + q : "");
+  }
+  return "login.html" + (next && next !== "index.html" ? "?next=" + encodeURIComponent(next) : "");
+}
+
+// buildPage({ title, menu, crumbs: [[ja,en,href?], ...], requireLogin=true, allowGuest=false })
+//   requireLogin=false … ログイン画面など（左メニューなし）
+//   allowGuest=true    … 未ログインでも閲覧できる画面（ダッシュボード・ヘルプ）。権限はすべて「不可」として表示される
+function buildPage({ title, menu = "", crumbs = [], requireLogin = true, allowGuest = false }) {
   ERP.init();
-  if (requireLogin && !ERP.currentUser()) {
-    window.location.replace(I18n.urlWith("login.html?next=" + encodeURIComponent(location.pathname.split("/").pop() + location.search)));
+  if (requireLogin && !allowGuest && !ERP.currentUser()) {
+    window.location.replace(I18n.urlWith(loginUrl()));
     return false;
   }
+  document.body.dataset.auth = ERP.currentUser() ? "user" : "guest";
   document.title = `${title} | VALTES ERP Demo`;
   if (I18n.isEN()) document.documentElement.lang = "en";
   const page = document.getElementById("page");
@@ -121,7 +141,7 @@ function toggleLang() {
 function logout() {
   if (!confirm(t("ログアウトしますか？", "Log out?"))) return;
   ERP.logout();
-  I18n.go("login.html");
+  I18n.go("index.html");   // ログアウト後はゲストとしてダッシュボードへ
 }
 
 // ── UI ヘルパー ───────────────────────────────────────────────

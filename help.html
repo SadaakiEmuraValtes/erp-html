@@ -35,7 +35,7 @@
 
   <script>
     document.addEventListener("DOMContentLoaded", () => {
-      if (!buildPage({ title: t("ヘルプ・テストデータ", "Help & Test Data"), menu: "help", crumbs: [["ヘルプ・テストデータ", "Help & Test Data"]] })) return;
+      if (!buildPage({ title: t("ヘルプ・テストデータ", "Help & Test Data"), menu: "help", crumbs: [["ヘルプ・テストデータ", "Help & Test Data"]], allowGuest: true })) return;
 
       document.getElementById("accounts").innerHTML = tableHtml({ id: "help-account-table", rowPrefix: "help-account", rows: USERS, rowKey: u => u.id, columns: [
         { key: "id", label: ["ユーザーID", "User ID"], value: u => u.id, cls: "mono" },
@@ -122,7 +122,7 @@
       if (!confirm(t("デモデータを初期化しますか？\n商品・受注・発注・配送・入出庫履歴が初期状態に戻り、ログアウトします。", "Reset demo data?\nAll data returns to the initial state and you will be logged out."))) return;
       ERP.resetAll();
       sessionStorage.removeItem("erp_flash");
-      I18n.go("login.html");
+      I18n.go("index.html");
     }
   </script>
 </body>

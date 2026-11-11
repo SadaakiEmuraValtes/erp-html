@@ -19,26 +19,37 @@
     <div class="kpi-grid" id="kpi-grid"></div>
     <div class="two-col">
       <div class="panel">
-        <div class="panel-head"><span data-i18n-en="🧾 Recent Sales Orders">🧾 最近の受注</span><span class="right"><a href="sales-orders.html" id="link-more-so" data-i18n-en="See all →">すべて見る →</a></span></div>
+        <div class="panel-head"><span data-i18n-en="🧾 Recent Sales Orders">🧾 最近の受注</span><span class="right"><a href="sales-orders.html" id="link-more-so" data-login-href data-i18n-en="See all →">すべて見る →</a></span></div>
         <div class="panel-body" style="padding:0" id="recent-so"></div>
       </div>
       <div class="panel">
-        <div class="panel-head"><span data-i18n-en="⚠️ Stock Alerts (active items)">⚠️ 在庫アラート（有効品目）</span><span class="right"><a href="products.html?stockStatus=low" id="link-more-low" data-i18n-en="Low stock →">安全在庫割れ →</a></span></div>
+        <div class="panel-head"><span data-i18n-en="⚠️ Stock Alerts (active items)">⚠️ 在庫アラート（有効品目）</span><span class="right"><a href="products.html?stockStatus=low" id="link-more-low" data-login-href data-i18n-en="Low stock →">安全在庫割れ →</a></span></div>
         <div class="panel-body" style="padding:0" id="stock-alerts"></div>
       </div>
     </div>
     <div class="panel">
       <div class="panel-head" data-i18n-en="🔑 Your Permissions">🔑 あなたの権限</div>
+      <p class="muted hidden" id="guest-perm-note" style="padding:8px 14px 0" data-i18n-en="Not logged in: all operations are not allowed.">未ログインのため、すべての操作が「不可」です。</p>
       <div class="panel-body" style="padding:0" id="my-perms"></div>
     </div>
   </div>
 
   <script>
     document.addEventListener("DOMContentLoaded", () => {
-      if (!buildPage({ title: t("ダッシュボード", "Dashboard"), menu: "dashboard" })) return;
+      if (!buildPage({ title: t("ダッシュボード", "Dashboard"), menu: "dashboard", allowGuest: true })) return;
       const u = ERP.currentUser(), d = ERP.dashboard();
-      document.getElementById("welcome").textContent = t(`${u.name} さん（${u.dept}／${ERP.roleName(u.role)}）、こんにちは。本日は ${dt(ERP.today())} です。`,
-        `Hello, ${u.nameEn} (${u.deptEn} / ${ERP.roleName(u.role)}). Today is ${dt(ERP.today())}.`);
+      if (u) {
+        document.getElementById("welcome").textContent = t(`${u.name} さん（${u.dept}／${ERP.roleName(u.role)}）、こんにちは。本日は ${dt(ERP.today())} です。`,
+          `Hello, ${u.nameEn} (${u.deptEn} / ${ERP.roleName(u.role)}). Today is ${dt(ERP.today())}.`);
+      } else {
+        // 未ログイン（ゲスト）：閲覧のみ。各機能のリンクはログイン画面を経由する
+        document.getElementById("welcome").outerHTML = `<div class="alert alert-info guest-notice" id="guest-notice" role="status">
+          <span>${t(`ゲストとして閲覧しています（本日は ${dt(ERP.today())}）。ダッシュボードとヘルプ以外の機能を使うにはログインしてください。`,
+            `You are viewing as a guest (today is ${dt(ERP.today())}). Log in to use features other than the dashboard and help.`)}</span>
+          <a class="btn btn-primary btn-sm" id="btn-guest-login" href="${I18n.urlWith("login.html")}">${t("ログイン", "Log In")}</a></div>`;
+      }
+      // ゲストのときは機能画面へのリンクをログイン画面経由にする（ログイン後にその画面へ戻る）
+      const link = href => I18n.urlWith(u ? href : loginUrl(href));
 
       const kpis = [
         ["open-sales", t("未出荷の受注", "Unshipped sales orders"), d.openSales, "", "sales-orders.html?status=ordered"],
@@ -50,13 +61,13 @@
         ["active-products", t("有効品目数", "Active items"), d.activeProducts, "", "products.html?statuses=active"],
       ];
       document.getElementById("kpi-grid").innerHTML = kpis.map(([id, label, v, cls, href]) => `
-        <a class="kpi" id="kpi-${id}" href="${I18n.urlWith(href)}" data-value="${v}">
+        <a class="kpi" id="kpi-${id}" href="${link(href)}" data-value="${v}">
           <div class="kpi-label">${label}</div><div class="kpi-value ${cls}" id="kpi-${id}-value">${num(v)}</div></a>`).join("");
 
       const recent = ERP.searchSalesOrders().slice(0, 6);
       document.getElementById("recent-so").innerHTML = tableHtml({
         id: "recent-so-table", rowPrefix: "recent-so", rows: recent, rowKey: o => o.no, columns: [
-          { key: "no", label: ["受注番号", "SO No."], value: o => o.no, html: o => `<a href="${I18n.urlWith("sales-order.html?no=" + o.no)}">${o.no}</a>`, cls: "nowrap" },
+          { key: "no", label: ["受注番号", "SO No."], value: o => o.no, html: o => `<a href="${link("sales-order.html?no=" + o.no)}">${o.no}</a>`, cls: "nowrap" },
           { key: "orderDate", label: ["受注日", "Date"], value: o => o.orderDate, html: o => dt(o.orderDate), cls: "nowrap" },
           { key: "customer", label: ["得意先", "Customer"], value: o => o.customer, html: o => esc(ERP.partnerName(o.customer)) },
           { key: "total", label: ["金額（税込）", "Total"], value: o => ERP.orderAmounts(o).total, html: o => yen(ERP.orderAmounts(o).total), cls: "num" },
@@ -65,18 +76,21 @@
 
       document.getElementById("stock-alerts").innerHTML = tableHtml({
         id: "stock-alert-table", rowPrefix: "alert", rows: d.alerts.slice(0, 8), rowKey: r => r.code, columns: [
-          { key: "code", label: ["品目コード", "Code"], value: r => r.code, html: r => `<a href="${I18n.urlWith("product.html?code=" + r.code)}">${r.code}</a>`, cls: "nowrap" },
+          { key: "code", label: ["品目コード", "Code"], value: r => r.code, html: r => `<a href="${link("product.html?code=" + r.code)}">${r.code}</a>`, cls: "nowrap" },
           { key: "name", label: ["品名", "Name"], value: r => r.name, html: r => esc(t(r.name, r.nameEn)) },
           { key: "available", label: ["有効在庫", "Available"], value: r => r.available, html: r => num(r.available), cls: "num" },
           { key: "safetyStock", label: ["安全在庫", "Safety"], value: r => r.safetyStock, html: r => num(r.safetyStock), cls: "num" },
           { key: "stockStatus", label: ["状態", "Status"], value: r => r.stockStatus, html: r => badge("stockStatus", r.stockStatus) },
         ] });
 
+      if (!u) document.querySelectorAll("[data-login-href]").forEach(a => a.setAttribute("href", link(a.getAttribute("href").replace(/[?&]lang=en/, ""))));
+
       document.getElementById("my-perms").innerHTML = `<table class="data-table" id="my-perm-table"><tbody>${Object.keys(PERMISSIONS).map(p => {
         const ok = ERP.can(p);
         return `<tr id="my-perm-${p}" data-key="${p}"><td data-col="perm">${L(PERMISSION_LABELS[p])}</td>
           <td data-col="allowed" data-value="${ok}" class="center">${ok ? `<span class="badge badge-ok">${t("可", "Allowed")}</span>` : `<span class="badge badge-gray">${t("不可", "Not allowed")}</span>`}</td></tr>`;
       }).join("")}</tbody></table>`;
+      if (!u) document.getElementById("guest-perm-note").classList.remove("hidden");
     });
   </script>
 </body>

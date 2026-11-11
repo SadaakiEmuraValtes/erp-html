@@ -18,6 +18,7 @@
       <div class="panel">
         <div class="panel-head" data-i18n-en="🔐 Log In">🔐 ログイン</div>
         <div class="panel-body">
+          <div id="login-required" class="alert alert-info hidden" role="status" data-i18n-en="Please log in to use this feature.">この機能を使うにはログインしてください。</div>
           <form id="login-form" onsubmit="doLogin(event)">
             <div class="form-group" id="g-login-id" style="margin-bottom:12px">
               <label for="login-id" data-i18n-en="User ID">ユーザーID</label>
@@ -30,6 +31,7 @@
             <div id="login-error" class="alert alert-danger hidden" role="alert"></div>
             <button type="submit" id="btn-login" class="btn btn-primary" style="width:100%;justify-content:center" data-i18n-en="Log In">ログイン</button>
           </form>
+          <p class="mt-16" style="text-align:center"><a href="index.html" id="link-back-top" data-i18n-en="← Back to Dashboard (without logging in)">← ログインせずにダッシュボードへ戻る</a></p>
         </div>
       </div>
       <div class="panel">
@@ -48,6 +50,7 @@
     document.addEventListener("DOMContentLoaded", () => {
       if (!buildPage({ title: t("ログイン", "Log In"), requireLogin: false })) return;
       if (ERP.currentUser()) { goNext(); return; }
+      if (qp("next")) document.getElementById("login-required").classList.remove("hidden");
       document.getElementById("account-list").innerHTML = USERS.map(u => `
         <tr id="account-${u.id}" data-key="${u.id}">
           <td data-col="id" class="mono">${u.id}</td>
