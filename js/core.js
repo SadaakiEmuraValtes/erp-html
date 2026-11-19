@@ -490,14 +490,19 @@ const ERP = (() => {
   }
 
   // ── 在庫 ──────────────────────────────────────────────────
-  // c: code / name / category / warehouse / stockStatus / onlyStocked
+  // c: code / name / category / maker / storages(配列 or カンマ区切り・OR) / colors(同) / warehouse / stockStatus / onlyStocked
   function searchInventory(c = {}) {
     const code = (c.code || "").trim().toUpperCase(), name = (c.name || "").trim().toLowerCase();
+    const list = v => (Array.isArray(v) ? v : v ? String(v).split(",") : []).filter(Boolean);
+    const storages = list(c.storages), colors = list(c.colors);
     const rows = [];
     S.products.forEach(p => {
       if (code && !p.code.includes(code)) return;
       if (name && !p.name.toLowerCase().includes(name) && !p.nameEn.toLowerCase().includes(name)) return;
       if (c.category && p.category !== c.category) return;
+      if (c.maker && p.maker !== c.maker) return;
+      if (storages.length && !storages.includes(String(p.storage))) return;
+      if (colors.length && !colors.includes(p.color)) return;
       WAREHOUSES.forEach(w => {
         if (c.warehouse && w.code !== c.warehouse) return;
         const i = inventory(p.code, w.code);

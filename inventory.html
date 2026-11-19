@@ -24,6 +24,11 @@
           <div class="form-group"><label for="s-code" data-i18n-en="Product code (partial)">品目コード（部分一致）</label><input type="text" id="s-code" name="code"></div>
           <div class="form-group"><label for="s-name" data-i18n-en="Name (partial)">品名（部分一致）</label><input type="text" id="s-name" name="name"></div>
           <div class="form-group"><label for="s-category" data-i18n-en="Category">カテゴリ</label><select id="s-category" name="category"></select></div>
+          <div class="form-group"><label for="s-maker" data-i18n-en="Brand">ブランド</label><select id="s-maker" name="maker"></select></div>
+          <div class="form-group"><span class="form-label" data-i18n-en="Storage">ストレージ容量</span>
+            <div class="check-group" id="s-storages"></div></div>
+          <div class="form-group"><span class="form-label" data-i18n-en="Color">カラー</span>
+            <div class="check-group" id="s-colors"></div></div>
           <div class="form-group"><label for="s-warehouse" data-i18n-en="Warehouse">倉庫</label><select id="s-warehouse" name="warehouse"></select></div>
           <div class="form-group"><label for="s-stockStatus" data-i18n-en="Stock status">在庫状態</label><select id="s-stockStatus" name="stockStatus"></select></div>
           <div class="form-group"><span class="form-label" data-i18n-en="Option">オプション</span>
@@ -45,19 +50,25 @@
   </div>
 
   <script>
-    const FIELDS = ["code", "name", "category", "warehouse", "stockStatus", "onlyStocked"];
+    const FIELDS = ["code", "name", "category", "maker", "warehouse", "stockStatus", "onlyStocked"];
+    const CHECKS = ["storages", "colors"];   // 複数選択（中はOR）
     let rows = [], page = 1;
 
     document.addEventListener("DOMContentLoaded", () => {
       if (!buildPage({ title: t("在庫照会", "Stock Inquiry"), menu: "inventory", crumbs: [["在庫管理", "Inventory"], ["在庫照会", "Stock Inquiry"]] })) return;
       const all = t("すべて", "All");
       document.getElementById("s-category").innerHTML = optionsHtml(OPTS.category(), "", all);
+      document.getElementById("s-maker").innerHTML = optionsHtml(OPTS.maker(), "", all);
+      document.getElementById("s-storages").innerHTML = STORAGES.map(x =>
+        `<label for="s-storage-${x.code}"><input type="checkbox" name="s-storages" id="s-storage-${x.code}" value="${x.code}">${ERP.label.storage(x.code)}</label>`).join("");
+      document.getElementById("s-colors").innerHTML = COLORS.map(x =>
+        `<label for="s-color-${x.code}"><input type="checkbox" name="s-colors" id="s-color-${x.code}" value="${x.code}">${ERP.label.color(x.code)}</label>`).join("");
       document.getElementById("s-warehouse").innerHTML = optionsHtml(OPTS.warehouse(), "", all);
       document.getElementById("s-stockStatus").innerHTML = optionsHtml(OPTS.stockStatus(), "", all);
-      search(fillSearchForm(FIELDS));
+      search(fillSearchForm(FIELDS, CHECKS));
     });
 
-    function search(p) { rows = ERP.searchInventory(readSearchForm(FIELDS)); page = p; render(); }
+    function search(p) { rows = ERP.searchInventory(readSearchForm(FIELDS, CHECKS)); page = p; render(); }
     function goPage(p) { page = p; render(); }
 
     function render() {
@@ -69,6 +80,9 @@
           emptyText: t("条件に一致する在庫はありません。", "No stock found."), rowAttrs: r => `data-code="${r.productCode}" data-warehouse="${r.warehouse}" data-status="${r.status}"`, columns: [
           { key: "productCode", label: ["品目コード", "Code"], value: r => r.productCode, html: r => `<a href="${I18n.urlWith("product.html?code=" + r.productCode)}">${r.productCode}</a>`, cls: "nowrap" },
           { key: "name", label: ["品名", "Name"], value: r => ERP.product(r.productCode).name, html: r => esc(ERP.productName(ERP.product(r.productCode))), cls: "cell-name" },
+          { key: "maker", label: ["ブランド", "Brand"], value: r => ERP.product(r.productCode).maker, html: r => esc(ERP.label.maker(ERP.product(r.productCode).maker)), cls: "nowrap" },
+          { key: "storage", label: ["容量", "Storage"], value: r => ERP.product(r.productCode).storage, html: r => esc(ERP.label.storage(ERP.product(r.productCode).storage)), cls: "nowrap" },
+          { key: "color", label: ["カラー", "Color"], value: r => ERP.product(r.productCode).color, html: r => esc(ERP.label.color(ERP.product(r.productCode).color)), cls: "nowrap" },
           { key: "warehouse", label: ["倉庫", "Warehouse"], value: r => r.warehouse, html: r => `${r.warehouse} ${esc(ERP.label.warehouse(r.warehouse))}`, cls: "nowrap" },
           { key: "qty", label: ["現在庫", "On hand"], value: r => r.qty, html: r => num(r.qty), cls: "num" },
           { key: "allocated", label: ["引当数", "Allocated"], value: r => r.allocated, html: r => num(r.allocated), cls: "num" },
@@ -80,7 +94,7 @@
             `<button class="btn btn-secondary btn-sm" id="btn-adjust-${r.productCode}-${r.warehouse}" ${permAttr("inv_adjust")} onclick="openAdjust('${r.productCode}','${r.warehouse}')">${t("調整", "Adjust")}</button>` },
         ] });
       }, "goPage");
-      writeSearchUrl(readSearchForm(FIELDS), page);
+      writeSearchUrl(readSearchForm(FIELDS, CHECKS), page);
     }
 
     function openAdjust(code, wh) {
